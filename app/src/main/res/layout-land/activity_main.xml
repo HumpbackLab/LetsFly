@@ -10,97 +10,114 @@
     <!-- Left Joystick - positioned in bottom-left quadrant for easy thumb access -->
     <com.example.myapplication.Joystick
             android:id="@+id/leftJoystick"
-            android:layout_width="280dp"
-            android:layout_height="280dp"
+            android:layout_width="@dimen/joystick_width"
+            android:layout_height="@dimen/joystick_height"
             app:defaultXPercent="0"
             app:defaultYPercent="-1"
             app:yReturnDefault="false"
             app:showText="false"
-            android:layout_margin="@dimen/margin_medium"
+            android:layout_margin="@dimen/spacing_m"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintHorizontal_bias="0.2"
+            app:layout_constraintHorizontal_bias="0.25"
             app:layout_constraintVertical_bias="0.9"/>
 
     <!-- Right Joystick - positioned in bottom-right quadrant for easy thumb access -->
     <com.example.myapplication.Joystick
             android:id="@+id/rightJoystick"
-            android:layout_width="280dp"
-            android:layout_height="280dp"
+            android:layout_width="@dimen/joystick_width"
+            android:layout_height="@dimen/joystick_height"
             app:showText="false"
-            android:layout_margin="@dimen/margin_medium"
+            android:layout_margin="@dimen/spacing_m"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintHorizontal_bias="0.8"
+            app:layout_constraintHorizontal_bias="0.75"
             app:layout_constraintVertical_bias="0.9"/>
 
-    <!-- Connect Button - positioned in upper left for easy reach -->
-    <Button
-            android:text="Connect"
-            android:layout_width="wrap_content"
+    <!-- Top Controls Container -->
+    <LinearLayout
+            android:id="@+id/topControlsContainer"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:id="@+id/openSerialButton"
-            android:onClick="openSerial"
-            android:layout_margin="@dimen/margin_medium"
+            android:orientation="horizontal"
+            android:padding="@dimen/spacing_s"
+            app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="parent"/>
+            app:layout_constraintTop_toTopOf="parent">
 
-    <!-- Use Gyro Button - positioned adjacent to Connect button -->
-    <Button
-            android:text="Use Gyro"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:id="@+id/useGyroButton"
-            android:onClick="useGyro"
-            android:layout_marginStart="@dimen/margin_medium"
-            app:layout_constraintStart_toEndOf="@id/openSerialButton"
-            app:layout_constraintTop_toTopOf="parent"/>
+        <!-- Left Group: Connection and Gyro Buttons -->
+        <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="horizontal">
 
-    <!-- Arm Switch - positioned in upper area, right side -->
-    <Switch
-            android:text="Arm"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:id="@+id/switchArm"
-            android:layout_marginTop="@dimen/margin_medium"
-            android:layout_marginEnd="@dimen/margin_medium"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintTop_toTopOf="parent"/>
+            <!-- Connect Button -->
+            <Button
+                    android:id="@+id/openSerialButton"
+                    android:layout_width="@dimen/button_width"
+                    android:layout_height="@dimen/button_height"
+                    android:layout_marginEnd="@dimen/spacing_s"
+                    android:onClick="openSerial"
+                    android:text="Connect"/>
 
-    <!-- Manual Switch - positioned below Arm switch -->
-    <Switch
-            android:text="Manual"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:id="@+id/switchManual"
-            android:layout_marginTop="@dimen/margin_switch_top"
-            android:layout_marginEnd="@dimen/margin_medium"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/switchArm"/>
+            <!-- Use Gyro Button -->
+            <Button
+                    android:id="@+id/useGyroButton"
+                    android:layout_width="@dimen/button_width"
+                    android:layout_height="@dimen/button_height"
+                    android:layout_marginEnd="@dimen/spacing_s"
+                    android:onClick="useGyro"
+                    android:text="Use Gyro"/>
 
-    <!-- Toggle Layout Button - positioned near the top, center area -->
-    <Button
-            android:text="Portrait"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:id="@+id/toggleLayoutButton"
-            android:onClick="toggleLayout"
-            android:layout_marginTop="@dimen/margin_medium"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintTop_toTopOf="parent"/>
+        </LinearLayout>
 
-    <!-- TextView for debug information - positioned in upper middle area -->
+        <!-- Right Group: Switches and Toggle -->
+        <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal">
+
+            <!-- Toggle Layout Button -->
+            <Button
+                    android:id="@+id/toggleLayoutButton"
+                    android:layout_width="@dimen/button_width"
+                    android:layout_height="@dimen/button_height"
+                    android:layout_marginEnd="@dimen/spacing_s"
+                    android:onClick="toggleLayout"
+                    android:text="Portrait"/>
+
+            <!-- Arm Switch -->
+            <Switch
+                    android:id="@+id/switchArm"
+                    android:layout_width="wrap_content"
+                    android:layout_height="@dimen/button_height"
+                    android:layout_marginEnd="@dimen/spacing_s"
+                    android:text="Arm"/>
+
+            <!-- Manual Switch -->
+            <Switch
+                    android:id="@+id/switchManual"
+                    android:layout_width="wrap_content"
+                    android:layout_height="@dimen/button_height"
+                    android:layout_marginEnd="@dimen/spacing_s"
+                    android:text="Manual"/>
+
+        </LinearLayout>
+    </LinearLayout>
+
+    <!-- TextView for debug information - positioned below controls -->
     <TextView
-            android:text="0"
-            android:keepScreenOn="true"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
             android:id="@+id/testView"
-            android:layout_marginTop="@dimen/margin_medium"
-            android:layout_marginEnd="@dimen/margin_medium"
-            app:layout_constraintEnd_toStartOf="@id/switchArm"
-            app:layout_constraintTop_toTopOf="parent"
-            android:visibility="visible"/>
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_margin="@dimen/spacing_s"
+            android:keepScreenOn="true"
+            android:text="0"
+            android:maxLines="10"
+            android:scrollbars="vertical"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/topControlsContainer"/>
 
 </androidx.constraintlayout.widget.ConstraintLayout>

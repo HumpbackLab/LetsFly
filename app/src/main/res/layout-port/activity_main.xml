@@ -7,16 +7,108 @@
         android:layout_height="match_parent"
         tools:context=".MainActivity">
 
+    <!-- Top Controls Container -->
+    <LinearLayout
+            android:id="@+id/topControlsContainer"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:padding="@dimen/spacing_s"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent">
+
+        <!-- Left Group: Connection and Gyro Buttons -->
+        <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="horizontal">
+
+            <!-- Connect Button -->
+            <Button
+                    android:id="@+id/openSerialButton"
+                    android:layout_width="@dimen/button_width"
+                    android:layout_height="@dimen/button_height"
+                    android:layout_marginEnd="@dimen/spacing_s"
+                    android:onClick="openSerial"
+                    android:text="Connect"/>
+
+            <!-- Use Gyro Button -->
+            <Button
+                    android:id="@+id/useGyroButton"
+                    android:layout_width="@dimen/button_width"
+                    android:layout_height="@dimen/button_height"
+                    android:layout_marginEnd="@dimen/spacing_s"
+                    android:onClick="useGyro"
+                    android:text="Use Gyro"/>
+
+        </LinearLayout>
+
+        <!-- Right Group: Toggle Button -->
+        <Button
+                android:id="@+id/toggleLayoutButton"
+                android:layout_width="@dimen/button_width"
+                android:layout_height="@dimen/button_height"
+                android:layout_marginStart="@dimen/spacing_s"
+                android:onClick="toggleLayout"
+                android:text="Landscape"/>
+
+    </LinearLayout>
+
+    <!-- Switches Container - placed below the buttons -->
+    <LinearLayout
+            android:id="@+id/switchesContainer"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center"
+            android:padding="@dimen/spacing_s"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/topControlsContainer">
+
+        <!-- Arm Switch -->
+        <Switch
+                android:id="@+id/switchArm"
+                android:layout_width="wrap_content"
+                android:layout_height="@dimen/button_height"
+                android:layout_marginEnd="@dimen/spacing_l"
+                android:text="Arm"/>
+
+        <!-- Manual Switch -->
+        <Switch
+                android:id="@+id/switchManual"
+                android:layout_width="wrap_content"
+                android:layout_height="@dimen/button_height"
+                android:text="Manual"/>
+
+    </LinearLayout>
+
+    <!-- Debug TextView - positioned below the switches -->
+    <TextView
+            android:id="@+id/testView"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_margin="@dimen/spacing_s"
+            android:keepScreenOn="true"
+            android:maxLines="10"
+            android:scrollbars="vertical"
+            android:text="0"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/switchesContainer"/>
+
     <!-- Main Joystick - centered in lower half for easy thumb access in portrait -->
     <com.example.myapplication.Joystick
             android:id="@+id/leftJoystick"
-            android:layout_width="300dp"
-            android:layout_height="300dp"
+            android:layout_width="@dimen/joystick_width"
+            android:layout_height="@dimen/joystick_height"
             app:defaultXPercent="0"
             app:defaultYPercent="-1"
             app:yReturnDefault="false"
             app:showText="false"
-            android:layout_marginBottom="80dp"
+            android:layout_marginBottom="@dimen/margin_joystick_bottom"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintBottom_toBottomOf="parent"/>
@@ -24,80 +116,13 @@
     <!-- Right Joystick - hidden in portrait mode but still available for gyro mode -->
     <com.example.myapplication.Joystick
             android:id="@+id/rightJoystick"
-            android:layout_width="300dp"
-            android:layout_height="300dp"
+            android:layout_width="@dimen/joystick_width"
+            android:layout_height="@dimen/joystick_height"
             app:showText="false"
             android:visibility="gone"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintTop_toTopOf="parent"
             app:layout_constraintBottom_toBottomOf="parent"/>
-
-    <!-- Top section controls -->
-    <!-- Connect Button -->
-    <Button
-            android:text="Connect"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:id="@+id/openSerialButton"
-            android:onClick="openSerial"
-            android:layout_margin="@dimen/margin_medium"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="parent"/>
-
-    <!-- Use Gyro Button -->
-    <Button
-            android:text="Use Gyro"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:id="@+id/useGyroButton"
-            android:onClick="useGyro"
-            android:layout_marginStart="@dimen/margin_medium"
-            app:layout_constraintStart_toEndOf="@id/openSerialButton"
-            app:layout_constraintTop_toTopOf="parent"/>
-
-    <!-- Toggle Layout Button -->
-    <Button
-            android:text="Landscape"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:id="@+id/toggleLayoutButton"
-            android:onClick="toggleLayout"
-            android:layout_marginEnd="@dimen/margin_medium"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintTop_toTopOf="parent"/>
-
-    <!-- Debug TextView - positioned below the control buttons -->
-    <TextView
-            android:text="0"
-            android:keepScreenOn="true"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:id="@+id/testView"
-            android:layout_marginTop="@dimen/margin_medium"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/openSerialButton"
-            android:visibility="visible"/>
-
-    <!-- Arm Switch - positioned in upper area -->
-    <Switch
-            android:text="Arm"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:id="@+id/switchArm"
-            android:layout_marginTop="@dimen/margin_medium"
-            app:layout_constraintEnd_toStartOf="@id/switchManual"
-            app:layout_constraintTop_toTopOf="parent"/>
-
-    <!-- Manual Switch - positioned adjacent to Arm switch -->
-    <Switch
-            android:text="Manual"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:id="@+id/switchManual"
-            android:layout_marginTop="@dimen/margin_medium"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintTop_toTopOf="parent"/>
 
 </androidx.constraintlayout.widget.ConstraintLayout>

@@ -1,31 +1,33 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Margins -->
-    <dimen name="margin_small">4dp</dimen>
-    <dimen name="margin_medium">8dp</dimen>
-    <dimen name="margin_large">16dp</dimen>
-    <dimen name="margin_extra_large">32dp</dimen>
-    <dimen name="margin_joystick_top">92dp</dimen>
-    <dimen name="margin_button_bottom">56dp</dimen>
-    <dimen name="margin_toggle_button_bottom">120dp</dimen>
-    <dimen name="margin_right_joystick_side">68dp</dimen>
-    <dimen name="margin_right_joystick_start">73dp</dimen>
-    <dimen name="margin_right_joystick_end">68dp</dimen>
-    <dimen name="margin_switch_arm_end">16dp</dimen>
-    <dimen name="margin_switch_manual_end">4dp</dimen>
-    <dimen name="margin_switch_top">8dp</dimen>
-    <dimen name="margin_textview_bottom">380dp</dimen>
-    <dimen name="margin_textview_top">332dp</dimen>
+    <!-- Consistent spacing system -->
+    <dimen name="spacing_xs">4dp</dimen>
+    <dimen name="spacing_s">8dp</dimen>
+    <dimen name="spacing_m">16dp</dimen>
+    <dimen name="spacing_l">24dp</dimen>
+    <dimen name="spacing_xl">32dp</dimen>
+    <dimen name="spacing_xxl">48dp</dimen>
+
+    <!-- Control-specific margins -->
+    <dimen name="margin_control_top">16dp</dimen>
+    <dimen name="margin_control_bottom">24dp</dimen>
+    <dimen name="margin_control_sides">16dp</dimen>
+    <dimen name="margin_joystick_bottom">64dp</dimen>
+    <dimen name="margin_switches_top">8dp</dimen>
+    <dimen name="margin_buttons_top">16dp</dimen>
 
     <!-- Button sizes -->
     <dimen name="button_min_width">48dp</dimen>
     <dimen name="button_min_height">48dp</dimen>
+    <dimen name="button_height">48dp</dimen>
+    <dimen name="button_width">120dp</dimen>
 
     <!-- Joystick dimensions -->
-    <dimen name="joystick_width">303dp</dimen>
-    <dimen name="joystick_height">270dp</dimen>
+    <dimen name="joystick_width">280dp</dimen>
+    <dimen name="joystick_height">280dp</dimen>
 
     <!-- Text sizes -->
     <dimen name="text_size_normal">14sp</dimen>
-    <dimen name="text_size_large">18sp</dimen>
+    <dimen name="text_size_large">16sp</dimen>
+    <dimen name="text_size_title">18sp</dimen>
 </resources>
