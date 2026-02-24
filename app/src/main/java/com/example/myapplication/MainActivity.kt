@@ -168,6 +168,18 @@ class MainActivity : AppCompatActivity() {
         println("")
     }
 
+    /** Called when the user taps the Toggle Layout button */
+    fun toggleLayout(view: View) {
+        // Toggle the requested orientation
+        if (resources.configuration.orientation == android.content.res.Configuration.ORIENTATION_PORTRAIT) {
+            // Currently in portrait, request landscape
+            requestedOrientation = android.content.pm.ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
+        } else {
+            // Currently in landscape, request portrait
+            requestedOrientation = android.content.pm.ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+        }
+    }
+
     private fun updateSwitchVisualFeedback(switch: Switch, isChecked: Boolean) {
         if (isChecked) {
             switch.setBackgroundColor(ContextCompat.getColor(this, android.R.color.holo_green_light))

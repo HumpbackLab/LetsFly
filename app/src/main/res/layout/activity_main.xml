@@ -5,82 +5,113 @@
         xmlns:app="http://schemas.android.com/apk/res-auto"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-
         tools:context=".MainActivity">
 
-    <Switch
-            android:text="Manual"
-            android:rotation="90"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content" android:id="@+id/switchManual"
-            android:layout_marginTop="92dp"
-            app:layout_constraintTop_toBottomOf="@+id/leftJoystick" android:layout_marginEnd="4dp"
-            app:layout_constraintEnd_toEndOf="parent" app:layout_constraintStart_toStartOf="@+id/switchArm"
-            app:layout_constraintHorizontal_bias="1.0"/>
+    <!-- Left Joystick -->
     <com.example.myapplication.Joystick
-
+            android:id="@+id/leftJoystick"
+            android:layout_width="@dimen/joystick_width"
+            android:layout_height="@dimen/joystick_height"
             app:defaultXPercent="0"
             app:defaultYPercent="-1"
             app:yReturnDefault="false"
-            android:id="@+id/leftJoystick"
-            android:layout_width="303dp"
-            android:rotation="90"
-            android:layout_height="270dp"
+            app:showText="false"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintTop_toTopOf="parent" app:layout_constraintVertical_bias="0.0"
-            app:layout_constraintHorizontal_bias="0.496" app:showText="false">
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintVertical_bias="0.3"
+            app:layout_constraintHorizontal_bias="0.5"/>
 
-    </com.example.myapplication.Joystick>
+    <!-- Right Joystick -->
     <com.example.myapplication.Joystick
             android:id="@+id/rightJoystick"
-            android:layout_width="303dp"
-            android:rotation="90"
-            android:layout_height="270dp"
-            app:showText="false" android:layout_marginEnd="68dp"
+            android:layout_width="@dimen/joystick_width"
+            android:layout_height="@dimen/joystick_height"
+            app:showText="false"
+            android:layout_marginEnd="@dimen/margin_right_joystick_end"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintBottom_toBottomOf="parent"
-            android:layout_marginBottom="16dp"
-            app:layout_constraintStart_toStartOf="parent" android:layout_marginStart="73dp"
-            app:layout_constraintTop_toBottomOf="@+id/leftJoystick" app:layout_constraintHorizontal_bias="0.0"
-            app:layout_constraintVertical_bias="1.0">
+            android:layout_marginBottom="@dimen/margin_medium"
+            app:layout_constraintStart_toStartOf="parent"
+            android:layout_marginStart="@dimen/margin_right_joystick_start"
+            app:layout_constraintTop_toBottomOf="@+id/leftJoystick"
+            app:layout_constraintHorizontal_bias="0.0"
+            app:layout_constraintVertical_bias="1.0"/>
 
-    </com.example.myapplication.Joystick>
+    <!-- Connect Button -->
     <Button
             android:text="Connect"
             android:layout_width="wrap_content"
-            android:layout_height="wrap_content" android:id="@+id/openSerialButton"
+            android:layout_height="wrap_content"
+            android:id="@+id/openSerialButton"
             android:onClick="openSerial"
-            android:rotation="90"
             app:layout_constraintStart_toStartOf="parent"
-            android:layout_marginStart="4dp" android:layout_marginBottom="56dp"
+            android:layout_marginStart="@dimen/margin_switch_manual_end"
+            android:layout_marginBottom="@dimen/margin_button_bottom"
             app:layout_constraintBottom_toTopOf="@+id/rightJoystick"/>
+
+    <!-- TextView for debug information -->
     <TextView
             android:text="0"
             android:keepScreenOn="true"
-            android:rotation="90"
             android:layout_width="wrap_content"
-            android:layout_height="wrap_content" android:id="@+id/testView"
-            app:layout_constraintEnd_toEndOf="parent" app:layout_constraintBottom_toBottomOf="parent"
-            android:layout_marginBottom="380dp"
-            app:layout_constraintTop_toTopOf="parent" android:layout_marginTop="332dp"
-            app:layout_constraintVertical_bias="0.48000002"
-            android:visibility="invisible"/>
+            android:layout_height="wrap_content"
+            android:id="@+id/testView"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent"
+            android:layout_marginBottom="@dimen/margin_textview_bottom"
+            app:layout_constraintTop_toTopOf="parent"
+            android:layout_marginTop="@dimen/margin_textview_top"
+            app:layout_constraintVertical_bias="0.48"
+            android:visibility="visible"/>
+
+    <!-- Use Gyro Button -->
     <Button
             android:text="Use Gyro"
-            android:rotation="90"
             android:layout_width="wrap_content"
-            android:layout_height="wrap_content" android:id="@+id/useGyroButton"
+            android:layout_height="wrap_content"
+            android:id="@+id/useGyroButton"
             android:onClick="useGyro"
-            app:layout_constraintStart_toEndOf="@+id/openSerialButton" android:layout_marginBottom="56dp"
-            app:layout_constraintBottom_toTopOf="@+id/rightJoystick" android:visibility="visible"/>
+            app:layout_constraintStart_toEndOf="@+id/openSerialButton"
+            android:layout_marginBottom="@dimen/margin_button_bottom"
+            app:layout_constraintBottom_toTopOf="@+id/rightJoystick"
+            android:visibility="visible"/>
+
+    <!-- Arm Switch -->
     <Switch
             android:text="Arm"
-            android:rotation="90"
             android:layout_width="wrap_content"
-            android:layout_height="wrap_content" android:id="@+id/switchArm"
-            android:layout_marginTop="8dp"
-            app:layout_constraintTop_toBottomOf="@+id/leftJoystick" android:layout_marginEnd="16dp"
+            android:layout_height="wrap_content"
+            android:id="@+id/switchArm"
+            android:layout_marginTop="@dimen/margin_switch_top"
+            app:layout_constraintTop_toBottomOf="@+id/leftJoystick"
+            android:layout_marginEnd="@dimen/margin_switch_arm_end"
             app:layout_constraintEnd_toEndOf="parent"/>
+
+    <!-- Manual Switch -->
+    <Switch
+            android:text="Manual"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:id="@+id/switchManual"
+            android:layout_marginTop="@dimen/margin_joystick_top"
+            app:layout_constraintTop_toBottomOf="@+id/leftJoystick"
+            android:layout_marginEnd="@dimen/margin_switch_manual_end"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="@+id/switchArm"
+            app:layout_constraintHorizontal_bias="1.0"/>
+
+    <!-- Toggle Layout Button -->
+    <Button
+            android:text="Portrait"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:id="@+id/toggleLayoutButton"
+            android:onClick="toggleLayout"
+            app:layout_constraintStart_toEndOf="@+id/openSerialButton"
+            android:layout_marginBottom="@dimen/margin_toggle_button_bottom"
+            app:layout_constraintBottom_toTopOf="@+id/rightJoystick"
+            android:layout_marginStart="@dimen/margin_switch_manual_end"/>
+
 </androidx.constraintlayout.widget.ConstraintLayout>

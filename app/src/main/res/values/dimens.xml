@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Margins -->
+    <dimen name="margin_small">4dp</dimen>
+    <dimen name="margin_medium">8dp</dimen>
+    <dimen name="margin_large">16dp</dimen>
+    <dimen name="margin_extra_large">32dp</dimen>
+    <dimen name="margin_joystick_top">92dp</dimen>
+    <dimen name="margin_button_bottom">56dp</dimen>
+    <dimen name="margin_toggle_button_bottom">120dp</dimen>
+    <dimen name="margin_right_joystick_side">68dp</dimen>
+    <dimen name="margin_right_joystick_start">73dp</dimen>
+    <dimen name="margin_right_joystick_end">68dp</dimen>
+    <dimen name="margin_switch_arm_end">16dp</dimen>
+    <dimen name="margin_switch_manual_end">4dp</dimen>
+    <dimen name="margin_switch_top">8dp</dimen>
+    <dimen name="margin_textview_bottom">380dp</dimen>
+    <dimen name="margin_textview_top">332dp</dimen>
+
+    <!-- Button sizes -->
+    <dimen name="button_min_width">48dp</dimen>
+    <dimen name="button_min_height">48dp</dimen>
+
+    <!-- Joystick dimensions -->
+    <dimen name="joystick_width">303dp</dimen>
+    <dimen name="joystick_height">270dp</dimen>
+
+    <!-- Text sizes -->
+    <dimen name="text_size_normal">14sp</dimen>
+    <dimen name="text_size_large">18sp</dimen>
+</resources>

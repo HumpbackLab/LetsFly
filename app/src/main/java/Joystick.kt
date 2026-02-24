@@ -46,7 +46,11 @@ class Joystick(context: Context, attrs: AttributeSet) : View(context, attrs){
     private val xReturnDefault:Boolean
     private val yReturnDefault:Boolean
 
+    // Flag to control extended Y-axis range
+    private var extendedRangeY: Boolean = false
+
     var enable:Boolean=true
+
     init {
         context.theme.obtainStyledAttributes(
             attrs,
@@ -69,6 +73,12 @@ class Joystick(context: Context, attrs: AttributeSet) : View(context, attrs){
             handler.postDelayed(runnable!!, repeatInterval)
         }
     }
+
+    // Method to enable/disable extended Y-axis range
+    fun setExtendedRangeY(extended: Boolean) {
+        extendedRangeY = extended
+    }
+
     fun setOnJoystickMoveListener(listener:OnJoystickMoveListener , interval:Long){
         this.listener=listener
         repeatInterval=interval
@@ -124,7 +134,6 @@ class Joystick(context: Context, attrs: AttributeSet) : View(context, attrs){
             drawLine(centerX,centerY,centerX+joystickRadius,centerY,sencondCirclePaint)
             drawLine(centerX,centerY,centerX,centerY-joystickRadius,sencondCirclePaint)
             drawCircle(xPosition.toFloat(), yPosition.toFloat(), buttonRadius.toFloat(), buttonPaint)
-
         }
     }
 
@@ -161,30 +170,51 @@ class Joystick(context: Context, attrs: AttributeSet) : View(context, attrs){
 
         xPosition = event.x.toInt()
         yPosition = event.y.toInt()
-        val abs = sqrt(
-            (xPosition - centerX) * (xPosition - centerX)
-                    + (yPosition - centerY) * (yPosition - centerY)
-        )
-        if(xPosition>centerX+joystickRadius){
-            xPosition=(centerX+joystickRadius).toInt()
-        }else if(xPosition<centerX-joystickRadius){
-            xPosition=(centerX-joystickRadius).toInt()
+
+        // Handle extended Y-axis range when needed
+        if (extendedRangeY) {
+            // For extended range, allow movement across a larger Y range
+            // We need to expand the touch boundary to allow movement beyond the joystick circle
+            // but keep the visual representation appropriate
+
+            // Calculate the extended limits, but ensure they're reasonable
+            // The button can now move further vertically
+            val maxUpwardMovement = (height * 1.5).toInt()  // Allow moving up 1.5 times the view height from center
+            val maxDownwardMovement = (height * 0.75).toInt()  // Allow moving down 0.75 times the view height from center
+
+            val extendedTop = (centerY - maxUpwardMovement).toInt()
+            val extendedBottom = (centerY + maxDownwardMovement).toInt()
+
+            if(yPosition > extendedBottom) {
+                yPosition = extendedBottom
+            } else if(yPosition < extendedTop) {
+                yPosition = extendedTop
+            }
+
+            // X position remains constrained normally within joystick radius
+            if(xPosition > centerX + joystickRadius) {
+                xPosition = (centerX + joystickRadius).toInt()
+            } else if(xPosition < centerX - joystickRadius) {
+                xPosition = (centerX - joystickRadius).toInt()
+            }
+        } else {
+            // Original behavior for normal range
+            if(xPosition > centerX + joystickRadius) {
+                xPosition = (centerX + joystickRadius).toInt()
+            } else if(xPosition < centerX - joystickRadius) {
+                xPosition = (centerX - joystickRadius).toInt()
+            }
+
+            if(yPosition > centerY + joystickRadius) {
+                yPosition = (centerY + joystickRadius).toInt()
+            } else if(yPosition < centerY - joystickRadius) {
+                yPosition = (centerY - joystickRadius).toInt()
+            }
         }
 
-        if(yPosition>centerY+joystickRadius){
-            yPosition=(centerY+joystickRadius).toInt()
-        }else if(yPosition<centerY-joystickRadius){
-            yPosition=(centerY-joystickRadius).toInt()
-        }
-
-/*        if (abs > joystickRadius) {
-            xPosition = ((xPosition - centerX) * joystickRadius / abs + centerX).toInt()
-            yPosition = ((yPosition - centerY) * joystickRadius / abs + centerY).toInt()
-        }*/
         invalidate()
         if (event.action == MotionEvent.ACTION_UP) {
-            //xPosition = centerX.toInt()
-            //yPosition = centerY.toInt()
+            // Apply default positions based on settings
             if(xReturnDefault){
                 xPosition = defaultX
             }
