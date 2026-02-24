@@ -3,6 +3,7 @@ package com.example.myapplication
 import android.annotation.SuppressLint
 import android.app.AlertDialog
 import android.content.Context
+import android.graphics.Color
 import android.hardware.Sensor
 import android.hardware.SensorEvent
 import android.hardware.SensorEventListener
@@ -17,6 +18,7 @@ import android.widget.TableLayout
 import android.widget.TableRow
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.ContextCompat
 import androidx.core.view.get
 import com.hehongdan.ch34xuartdriver.CH34xUARTDriver
 import java.lang.Thread.sleep
@@ -24,6 +26,23 @@ import kotlin.math.asin
 import kotlin.math.atan2
 
 class MainActivity : AppCompatActivity() {
+    companion object {
+        // Constants for sensor to degree conversion
+        const val RADIAN_TO_DEGREE_FACTOR = 180.0f / Math.PI.toFloat()
+
+        // Constants for duty cycle conversion
+        const val DUTY_CYCLE_MULTIPLIER = 1639
+        const val DUTY_CYCLE_OFFSET = 172
+
+        // Sensor delay constant (using GAME_ROTATION_VECTOR, we want a balance between responsiveness and power)
+        const val SENSOR_DELAY_NORMAL = 16667  // ~60Hz (in microseconds)
+        const val SENSOR_DELAY_FASTEST = 0     // For high-frequency updates of internal logic
+
+        // CRSF packet constants
+        const val CRSF_PACKET_TYPE_RC_CHANNELS = 0x16
+        const val CRSF_PACKET_ADDRESS = 0xC8
+        const val CRSF_PACKET_LENGTH = 0x18
+    }
     class MyListener(val callback: (listen: MyListener) -> Unit) : SensorEventListener {
         public var roll: Float = 0.0f
         public var pitch: Float = 0.0f
@@ -38,7 +57,7 @@ class MainActivity : AppCompatActivity() {
                 SensorManager.getRotationMatrixFromVector(R, event.values)
                 SensorManager.getOrientation(R, test)
                 //Q2Angle(Q)
-                test = test.map { it * 180.0f / 3.14159f }.toFloatArray()
+                test = test.map { it * RADIAN_TO_DEGREE_FACTOR }.toFloatArray()
                 yaw = test[0]
                 roll = test[1]
                 pitch = test[2]
@@ -65,6 +84,8 @@ class MainActivity : AppCompatActivity() {
     private lateinit var bytes: ByteArray
     private val crsfData: CRSFData = CRSFData()
     private var useGyroControl = false
+    private var lastUpdateTime = 0L
+    private val uiUpdateInterval = 50L // Limit UI updates to every 50ms (20Hz)
 
     private var thrust:Float=0f
 
@@ -76,14 +97,14 @@ class MainActivity : AppCompatActivity() {
 
     private var yaw_offset:Float=0f
 
-    fun duty2CRSF(duty:Float)=(duty * 1639 + 172).toInt()
+    fun duty2CRSF(duty:Float)=(duty * DUTY_CYCLE_MULTIPLIER + DUTY_CYCLE_OFFSET).toInt()
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
         val sensorManager = getSystemService(Context.SENSOR_SERVICE) as SensorManager
         val sensor: Sensor? = sensorManager.getDefaultSensor(Sensor.TYPE_GAME_ROTATION_VECTOR)
 
-        sensorManager.registerListener(MyListener(this::sensorCallBack), sensor, 10000);
+        sensorManager.registerListener(MyListener(this::sensorCallBack), sensor, SENSOR_DELAY_FASTEST);
         serialDriver =
             CH34xUARTDriver(getSystemService(USB_SERVICE) as UsbManager, this, "cn.wch.wchusbdriver.USB_PERMISSION")
 
@@ -120,6 +141,19 @@ class MainActivity : AppCompatActivity() {
             }, 10
         )
 
+        // Add listeners to switches for visual feedback
+        manualSwitch.setOnCheckedChangeListener { _, isChecked ->
+            updateSwitchVisualFeedback(manualSwitch, isChecked)
+        }
+
+        armSwitch.setOnCheckedChangeListener { _, isChecked ->
+            updateSwitchVisualFeedback(armSwitch, isChecked)
+        }
+
+        // Initialize visual feedback for switches
+        updateSwitchVisualFeedback(manualSwitch, manualSwitch.isChecked)
+        updateSwitchVisualFeedback(armSwitch, armSwitch.isChecked)
+
         //val test=TextView(this)
         //test.setText("BV")
         //(tableLayoutView[3] as TableRow).addView(test)
@@ -132,6 +166,14 @@ class MainActivity : AppCompatActivity() {
             print(String.format("%02X,", i))
         }
         println("")
+    }
+
+    private fun updateSwitchVisualFeedback(switch: Switch, isChecked: Boolean) {
+        if (isChecked) {
+            switch.setBackgroundColor(ContextCompat.getColor(this, android.R.color.holo_green_light))
+        } else {
+            switch.setBackgroundColor(ContextCompat.getColor(this, android.R.color.darker_gray))
+        }
     }
 
     private fun debugInfo(str: String) =
@@ -219,6 +261,14 @@ class MainActivity : AppCompatActivity() {
             rightJoyStick.enable = true
             findViewById<Button>(R.id.useGyroButton).text = "USE Gyro"
         }
+
+        // Visual feedback for the button
+        val button = findViewById<Button>(R.id.useGyroButton)
+        if (useGyroControl) {
+            button.setBackgroundColor(ContextCompat.getColor(this, android.R.color.holo_green_light))
+        } else {
+            button.setBackgroundColor(ContextCompat.getColor(this, android.R.color.holo_blue_light))
+        }
     }
 
     fun constrain(min: Float, max: Float, value: Float): Float {
@@ -257,10 +307,9 @@ class MainActivity : AppCompatActivity() {
 
     @SuppressLint("SetTextI18n")
     fun sensorCallBack(listen: MyListener) {
-        val channel_text = crsfData.data_array.map { "$it" }.joinToString("  ")
-        findViewById<TextView>(R.id.testView).text = channel_text + "\nroll ${listen.roll} \npitch:${listen.pitch}" +
-                "\nyaw:${listen.yaw}\nyaw_offset:${yaw_offset}\n"
+        val currentTime = System.currentTimeMillis()
 
+        // Update CRSF data regardless of UI throttling
         if (useGyroControl) {
             val tempRoll = constrain(-130f, -50f, listen.pitch) + 50
             val tempPitch = constrain(-40f, 40f, listen.roll) + 40
@@ -296,6 +345,15 @@ class MainActivity : AppCompatActivity() {
         if (serialOpened) {
             bytes = crsfData.pack().toByteArray()
             uartWrite(bytes, 26)
+        }
+
+        // Throttle UI updates to prevent excessive redraws
+        if (currentTime - lastUpdateTime >= uiUpdateInterval) {
+            lastUpdateTime = currentTime
+
+            val channel_text = crsfData.data_array.map { "$it" }.joinToString("  ")
+            findViewById<TextView>(R.id.testView).text = channel_text + "\nroll ${listen.roll} \npitch:${listen.pitch}" +
+                    "\nyaw:${listen.yaw}\nyaw_offset:${yaw_offset}\n"
         }
     }
 }

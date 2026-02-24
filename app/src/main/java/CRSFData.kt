@@ -31,6 +31,12 @@ class CRSFData{
         }
         return crc
     }
+
+    // Generic method to create CRC for packets
+    @OptIn(ExperimentalUnsignedTypes::class)
+    private fun createCrcForRange(startIndex: Int, endIndex: Int, buffer: UByteArray): UByte {
+        return crsf_crc8(buffer.slice(startIndex .. endIndex).toUByteArray())
+    }
     @OptIn(ExperimentalUnsignedTypes::class)
     fun pack():UByteArray{
         var startBitIndex=0
@@ -62,7 +68,8 @@ class CRSFData{
                 }
             }
         }
-        byte_array[25]=crsf_crc8(byte_array.slice(2 .. 24).toUByteArray())
+        // Apply CRC using the shared method
+        byte_array[25] = createCrcForRange(2, 24, byte_array)
         return byte_array
     }
 
@@ -76,7 +83,8 @@ class CRSFData{
         byte_array[5]=command
         byte_array[6]=value
 
-        byte_array[7]=crsf_crc8(byte_array.slice(2 ..  6).toUByteArray())
+        // Apply CRC using the shared method
+        byte_array[7] = createCrcForRange(2, 6, byte_array)
 
         return byte_array
     }

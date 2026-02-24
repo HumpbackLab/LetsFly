@@ -5,9 +5,14 @@ import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
 import android.graphics.Paint.ANTI_ALIAS_FLAG
+import android.os.Handler
+import android.os.Looper
 import android.util.AttributeSet
 import android.view.MotionEvent
 import android.view.View
+import java.util.concurrent.Executors
+import java.util.concurrent.ScheduledExecutorService
+import java.util.concurrent.TimeUnit
 import kotlin.math.sqrt
 
 
@@ -16,15 +21,21 @@ interface OnJoystickMoveListener {
 }
 
 class Joystick(context: Context, attrs: AttributeSet) : View(context, attrs){
+    companion object {
+        // Default repeat interval for joystick updates in milliseconds
+        const val DEFAULT_REPEAT_INTERVAL: Long = 1000
+    }
+
     private var buttonRadius: Int = 0
     private var joystickRadius: Int = 0
     private var centerX: Float = 0.0f
     private var centerY: Float = 0.0f
     private var xPosition:Int = 0
     private var yPosition:Int = 0
-    private var thread: Thread? = null
     private var listener:OnJoystickMoveListener? = null
-    private var repeatInterval:Long = 1000
+    private var repeatInterval:Long = DEFAULT_REPEAT_INTERVAL
+    private val handler = Handler(Looper.getMainLooper())
+    private var runnable: Runnable? = null
 
     private var defaultX:Int = 0
     private var defaultY:Int = 0
@@ -52,14 +63,10 @@ class Joystick(context: Context, attrs: AttributeSet) : View(context, attrs){
 
         }
     }
-    private fun run() = Runnable {
-        while(!Thread.interrupted()){
+    private fun createRunnable(): Runnable {
+        return Runnable {
             listener?.onJoystickValueChanged(getOutX(), getOutY())
-            try {
-                Thread.sleep(repeatInterval)
-            }catch (e:InterruptedException){
-                break
-            }
+            handler.postDelayed(runnable!!, repeatInterval)
         }
     }
     fun setOnJoystickMoveListener(listener:OnJoystickMoveListener , interval:Long){
@@ -185,16 +192,30 @@ class Joystick(context: Context, attrs: AttributeSet) : View(context, attrs){
                 yPosition = defaultY
             }
 
-            thread?.interrupt()
+            // Remove any pending callbacks to stop the updates
+            if (runnable != null) {
+                handler.removeCallbacks(runnable!!)
+            }
             listener?.onJoystickValueChanged(getOutX(),getOutY())
 
         }else if (event.action==MotionEvent.ACTION_DOWN && listener!=null){
-           if(thread?.isAlive == true){
-                thread?.interrupt()
-           }
-            thread=Thread(run())
-            thread?.start()
+            // Remove any existing callback to avoid duplicates
+            if (runnable != null) {
+                handler.removeCallbacks(runnable!!)
+            }
+
+            // Create and post the new runnable
+            runnable = createRunnable()
+            handler.post(runnable!!)
         }
         return true
+    }
+
+    override fun onDetachedFromWindow() {
+        super.onDetachedFromWindow()
+        // Clean up the handler to prevent memory leaks
+        if (runnable != null) {
+            handler.removeCallbacks(runnable!!)
+        }
     }
 }
