@@ -97,6 +97,14 @@ class MainActivity : AppCompatActivity() {
 
     private var yaw_offset:Float=0f
 
+    // CH6 Three-position switch states
+    private enum class CH6Position {
+        LOW, MIDDLE, HIGH
+    }
+
+    private var ch6Position = CH6Position.LOW  // Start at LOW so first click goes to MIDDLE
+    private lateinit var ch6Switch: Button
+
     fun duty2CRSF(duty:Float)=(duty * DUTY_CYCLE_MULTIPLIER + DUTY_CYCLE_OFFSET).toInt()
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -113,6 +121,7 @@ class MainActivity : AppCompatActivity() {
         rightJoyStick = findViewById<Joystick>(R.id.rightJoystick)
         manualSwitch = findViewById(R.id.switchManual)
         armSwitch = findViewById(R.id.switchArm)
+        ch6Switch = findViewById(R.id.switchCH6)
 
 
         // ch1 roll
@@ -150,9 +159,22 @@ class MainActivity : AppCompatActivity() {
             updateSwitchVisualFeedback(armSwitch, isChecked)
         }
 
+        // Add click listener to CH6 switch to cycle through positions
+        ch6Switch.setOnClickListener {
+            // Cycle through positions: LOW -> MIDDLE -> HIGH -> LOW
+            ch6Position = when (ch6Position) {
+                CH6Position.LOW -> CH6Position.MIDDLE
+                CH6Position.MIDDLE -> CH6Position.HIGH
+                CH6Position.HIGH -> CH6Position.LOW
+            }
+            ch6Switch.isEnabled = true  // Always enable the switch when clicked
+            updateCH6SwitchUI()
+        }
+
         // Initialize visual feedback for switches
         updateSwitchVisualFeedback(manualSwitch, manualSwitch.isChecked)
         updateSwitchVisualFeedback(armSwitch, armSwitch.isChecked)
+        updateCH6SwitchUI()  // Initialize CH6 switch UI
 
         //val test=TextView(this)
         //test.setText("BV")
@@ -185,6 +207,22 @@ class MainActivity : AppCompatActivity() {
             switch.setBackgroundColor(ContextCompat.getColor(this, android.R.color.holo_green_light))
         } else {
             switch.setBackgroundColor(ContextCompat.getColor(this, android.R.color.darker_gray))
+        }
+    }
+
+    private fun updateCH6SwitchUI() {
+        val positionText = when (ch6Position) {
+            CH6Position.LOW -> "LOW"
+            CH6Position.MIDDLE -> "MID"
+            CH6Position.HIGH -> "HIGH"
+        }
+        ch6Switch.text = "CH6: $positionText"
+
+        // Set visual feedback color based on position
+        when (ch6Position) {
+            CH6Position.LOW -> ch6Switch.setBackgroundColor(ContextCompat.getColor(this, android.R.color.holo_red_light))
+            CH6Position.MIDDLE -> ch6Switch.setBackgroundColor(ContextCompat.getColor(this, android.R.color.holo_orange_light))
+            CH6Position.HIGH -> ch6Switch.setBackgroundColor(ContextCompat.getColor(this, android.R.color.holo_green_light))
         }
     }
 
@@ -353,6 +391,14 @@ class MainActivity : AppCompatActivity() {
         }else{
             crsfData.data_array[4]=duty2CRSF(0f)
         }
+
+        // Set CH6 value based on position
+        val ch6Value = when (ch6Position) {
+            CH6Position.LOW -> 0f      // Lowest value
+            CH6Position.MIDDLE -> 0.5f // Middle value
+            CH6Position.HIGH -> 1f     // Highest value
+        }
+        crsfData.data_array[5] = duty2CRSF(ch6Value)  // CH6 corresponds to index 5
 
         if (serialOpened) {
             bytes = crsfData.pack().toByteArray()
