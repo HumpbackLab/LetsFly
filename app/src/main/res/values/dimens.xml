@@ -25,6 +25,8 @@
     <!-- Joystick dimensions -->
     <dimen name="joystick_width">280dp</dimen>
     <dimen name="joystick_height">280dp</dimen>
+    <dimen name="joystick_portrait_height">500dp</dimen>
+    <dimen name="joystick_portrait_width">350dp</dimen>
 
     <!-- Text sizes -->
     <dimen name="text_size_normal">14sp</dimen>

@@ -42,6 +42,8 @@ class Joystick(context: Context, attrs: AttributeSet) : View(context, attrs){
 
     private val defaultXPercent:Float
     private val defaultYPercent:Float
+    private val rectangularBoundaryEnabled:Boolean
+    private val aspectRatio:Float
 
     private val xReturnDefault:Boolean
     private val yReturnDefault:Boolean
@@ -61,6 +63,8 @@ class Joystick(context: Context, attrs: AttributeSet) : View(context, attrs){
                 defaultYPercent = getFloat(R.styleable.Joystick_defaultYPercent, 0f)
                 xReturnDefault = getBoolean(R.styleable.Joystick_xReturnDefault,true)
                 yReturnDefault = getBoolean(R.styleable.Joystick_yReturnDefault,true)
+                rectangularBoundaryEnabled = getBoolean(R.styleable.Joystick_rectangularBoundaryEnabled,false)
+                aspectRatio = getFloat(R.styleable.Joystick_aspectRatio, 1.0f)
             } finally {
                 recycle()
             }
@@ -101,8 +105,16 @@ class Joystick(context: Context, attrs: AttributeSet) : View(context, attrs){
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
         // setting the measured values to resize the view to a certain width and
         // height
-        val d = Math.min(measure(widthMeasureSpec), measure(heightMeasureSpec))
-        setMeasuredDimension(d, d)
+        if (rectangularBoundaryEnabled) {
+            // For rectangular boundary, use actual requested dimensions
+            val width = measure(widthMeasureSpec)
+            val height = measure(heightMeasureSpec)
+            setMeasuredDimension(width, height)
+        } else {
+            // For circular boundary, maintain square shape
+            val d = Math.min(measure(widthMeasureSpec), measure(heightMeasureSpec))
+            setMeasuredDimension(d, d)
+        }
     }
 
     override fun onSizeChanged(xNew: Int, yNew: Int, xOld: Int, yOld: Int) {
@@ -129,20 +141,39 @@ class Joystick(context: Context, attrs: AttributeSet) : View(context, attrs){
         super.onDraw(canvas)
 
         canvas.apply {
-            drawCircle(centerX,centerY,joystickRadius.toFloat(),mainCirclePaint)
-            drawCircle(centerX,centerY,joystickRadius.toFloat()/2,sencondCirclePaint)
-            drawLine(centerX,centerY,centerX+joystickRadius,centerY,sencondCirclePaint)
-            drawLine(centerX,centerY,centerX,centerY-joystickRadius,sencondCirclePaint)
+            if (rectangularBoundaryEnabled) {
+                // Draw elliptical boundary for rectangular mode
+                val rectWidth = joystickRadius.toFloat()
+                val rectHeight = (joystickRadius * aspectRatio).toFloat()
+
+                // Draw outer ellipse
+                drawOval(centerX - rectWidth, centerY - rectHeight, centerX + rectWidth, centerY + rectHeight, mainCirclePaint)
+
+                // Draw inner ellipse
+                drawOval(centerX - rectWidth/2, centerY - rectHeight/2, centerX + rectWidth/2, centerY + rectHeight/2, sencondCirclePaint)
+
+                // Draw cross lines
+                drawLine(centerX - rectWidth, centerY, centerX + rectWidth, centerY, sencondCirclePaint)
+                drawLine(centerX, centerY - rectHeight, centerX, centerY + rectHeight, sencondCirclePaint)
+            } else {
+                // Original circular boundary
+                drawCircle(centerX, centerY, joystickRadius.toFloat(), mainCirclePaint)
+                drawCircle(centerX, centerY, joystickRadius.toFloat()/2, sencondCirclePaint)
+                drawLine(centerX, centerY, centerX + joystickRadius, centerY, sencondCirclePaint)
+                drawLine(centerX, centerY, centerX, centerY - joystickRadius, sencondCirclePaint)
+            }
+
+            // Draw the movable button
             drawCircle(xPosition.toFloat(), yPosition.toFloat(), buttonRadius.toFloat(), buttonPaint)
         }
     }
 
     private fun getOutX()=(xPosition - centerX) / joystickRadius
-    private fun getOutY()=-(yPosition - centerY) / joystickRadius
+    private fun getOutY()=-(yPosition - centerY) / (if (rectangularBoundaryEnabled) (joystickRadius * aspectRatio) else joystickRadius).toFloat()
 
     public fun setXY(targetX:Float,targetY:Float){
         xPosition=(joystickRadius*targetX+centerX).toInt()
-        yPosition=(centerY-joystickRadius*targetY).toInt()
+        yPosition=(centerY- if (rectangularBoundaryEnabled) (joystickRadius * aspectRatio * targetY) else (joystickRadius * targetY)).toInt()
         invalidate()
     }
 
@@ -171,7 +202,6 @@ class Joystick(context: Context, attrs: AttributeSet) : View(context, attrs){
         xPosition = event.x.toInt()
         yPosition = event.y.toInt()
 
-        // Handle extended Y-axis range when needed
         if (extendedRangeY) {
             // For extended range, allow movement across a larger Y range
             // We need to expand the touch boundary to allow movement beyond the joystick circle
@@ -197,8 +227,24 @@ class Joystick(context: Context, attrs: AttributeSet) : View(context, attrs){
             } else if(xPosition < centerX - joystickRadius) {
                 xPosition = (centerX - joystickRadius).toInt()
             }
+        } else if (rectangularBoundaryEnabled) {
+            // Use rectangular boundary limits
+            val halfWidth = joystickRadius
+            val halfHeight = (joystickRadius * aspectRatio).toInt()
+
+            if(xPosition > centerX + halfWidth) {
+                xPosition = (centerX + halfWidth).toInt()
+            } else if(xPosition < centerX - halfWidth) {
+                xPosition = (centerX - halfWidth).toInt()
+            }
+
+            if(yPosition > centerY + halfHeight) {
+                yPosition = (centerY + halfHeight).toInt()
+            } else if(yPosition < centerY - halfHeight) {
+                yPosition = (centerY - halfHeight).toInt()
+            }
         } else {
-            // Original behavior for normal range
+            // Original behavior for normal circular range
             if(xPosition > centerX + joystickRadius) {
                 xPosition = (centerX + joystickRadius).toInt()
             } else if(xPosition < centerX - joystickRadius) {

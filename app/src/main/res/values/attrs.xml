@@ -5,5 +5,7 @@
         <attr name="defaultYPercent" format="float" />
         <attr name="xReturnDefault" format="boolean" />
         <attr name="yReturnDefault" format="boolean" />
+        <attr name="rectangularBoundaryEnabled" format="boolean" />
+        <attr name="aspectRatio" format="float" />
     </declare-styleable>
 </resources>

@@ -102,12 +102,14 @@
     <!-- Main Joystick - centered in lower half for easy thumb access in portrait -->
     <com.example.myapplication.Joystick
             android:id="@+id/leftJoystick"
-            android:layout_width="@dimen/joystick_width"
-            android:layout_height="@dimen/joystick_height"
+            android:layout_width="@dimen/joystick_portrait_width"
+            android:layout_height="@dimen/joystick_portrait_height"
             app:defaultXPercent="0"
             app:defaultYPercent="-1"
             app:yReturnDefault="false"
             app:showText="false"
+            app:rectangularBoundaryEnabled="true"
+            app:aspectRatio="1.6"
             android:layout_marginBottom="@dimen/margin_joystick_bottom"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
