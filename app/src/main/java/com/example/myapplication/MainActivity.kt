@@ -92,18 +92,25 @@ class MainActivity : AppCompatActivity() {
     private lateinit var leftJoyStick: Joystick
     private lateinit var rightJoyStick: Joystick
 
-    private lateinit var manualSwitch: Switch
     private lateinit var armSwitch: Switch
 
     private var yaw_offset:Float=0f
 
-    // CH6 Three-position switch states
-    private enum class CH6Position {
+    // Generic three-position switch enum and class
+    enum class SwitchPosition {
         LOW, MIDDLE, HIGH
     }
 
-    private var ch6Position = CH6Position.LOW  // Start at LOW so first click goes to MIDDLE
-    private lateinit var ch6Switch: Button
+    data class ThreePositionSwitch(
+        val button: Button,
+        var position: SwitchPosition,
+        val dataArrayIndex: Int  // Index in crsfData.data_array
+    )
+
+    // Instance variables for three-position switches
+    private lateinit var ch6SwitchControl: ThreePositionSwitch
+    private lateinit var ch7SwitchControl: ThreePositionSwitch
+    private lateinit var ch8SwitchControl: ThreePositionSwitch
 
     fun duty2CRSF(duty:Float)=(duty * DUTY_CYCLE_MULTIPLIER + DUTY_CYCLE_OFFSET).toInt()
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -119,9 +126,12 @@ class MainActivity : AppCompatActivity() {
         //bytes=getTestByteArray("C8 18 16 E0 03 1F 2B C0 F7 8B 5F FC E2 17 E5 2B 5F F9 CA 07 00 00 44 3C E2 B8")
         leftJoyStick = findViewById<Joystick>(R.id.leftJoystick)
         rightJoyStick = findViewById<Joystick>(R.id.rightJoystick)
-        manualSwitch = findViewById(R.id.switchManual)
         armSwitch = findViewById(R.id.switchArm)
-        ch6Switch = findViewById(R.id.switchCH6)
+
+        // Initialize three-position switches with a helper function
+        ch6SwitchControl = createThreePositionSwitch(R.id.switchCH6, SwitchPosition.LOW, 5)  // CH6 corresponds to index 5
+        ch7SwitchControl = createThreePositionSwitch(R.id.switchCH7, SwitchPosition.LOW, 6)  // CH7 corresponds to index 6
+        ch8SwitchControl = createThreePositionSwitch(R.id.switchCH8, SwitchPosition.LOW, 7)  // CH8 corresponds to index 7
 
 
         // ch1 roll
@@ -151,34 +161,17 @@ class MainActivity : AppCompatActivity() {
         )
 
         // Add listeners to switches for visual feedback
-        manualSwitch.setOnCheckedChangeListener { _, isChecked ->
-            updateSwitchVisualFeedback(manualSwitch, isChecked)
-        }
-
         armSwitch.setOnCheckedChangeListener { _, isChecked ->
             updateSwitchVisualFeedback(armSwitch, isChecked)
         }
 
-        // Add click listener to CH6 switch to cycle through positions
-        ch6Switch.setOnClickListener {
-            // Cycle through positions: LOW -> MIDDLE -> HIGH -> LOW
-            ch6Position = when (ch6Position) {
-                CH6Position.LOW -> CH6Position.MIDDLE
-                CH6Position.MIDDLE -> CH6Position.HIGH
-                CH6Position.HIGH -> CH6Position.LOW
-            }
-            ch6Switch.isEnabled = true  // Always enable the switch when clicked
-            updateCH6SwitchUI()
-        }
-
         // Initialize visual feedback for switches
-        updateSwitchVisualFeedback(manualSwitch, manualSwitch.isChecked)
         updateSwitchVisualFeedback(armSwitch, armSwitch.isChecked)
-        updateCH6SwitchUI()  // Initialize CH6 switch UI
 
-        //val test=TextView(this)
-        //test.setText("BV")
-        //(tableLayoutView[3] as TableRow).addView(test)
+        // Initialize three-position switches
+        ch6SwitchControl = createThreePositionSwitch(R.id.switchCH6, SwitchPosition.LOW, 5)  // CH6 corresponds to index 5
+        ch7SwitchControl = createThreePositionSwitch(R.id.switchCH7, SwitchPosition.LOW, 6)  // CH7 corresponds to index 6
+        ch8SwitchControl = createThreePositionSwitch(R.id.switchCH8, SwitchPosition.LOW, 7)  // CH8 corresponds to index 7
 
         for (i in 1..16) {
             crsfData.data_array[i - 1] = i
@@ -188,6 +181,26 @@ class MainActivity : AppCompatActivity() {
             print(String.format("%02X,", i))
         }
         println("")
+    }
+
+    // Helper function to create a three-position switch
+    private fun createThreePositionSwitch(buttonId: Int, initialPosition: SwitchPosition, dataArrayIndex: Int): ThreePositionSwitch {
+        val button = findViewById<Button>(buttonId)
+        val switch = ThreePositionSwitch(button, initialPosition, dataArrayIndex)
+
+        button.setOnClickListener {
+            // Cycle through positions: LOW -> MIDDLE -> HIGH -> LOW
+            switch.position = when (switch.position) {
+                SwitchPosition.LOW -> SwitchPosition.MIDDLE
+                SwitchPosition.MIDDLE -> SwitchPosition.HIGH
+                SwitchPosition.HIGH -> SwitchPosition.LOW
+            }
+            button.isEnabled = true  // Always enable the switch when clicked
+            updateThreePositionSwitchUI(switch)
+        }
+
+        updateThreePositionSwitchUI(switch)  // Initialize UI
+        return switch
     }
 
     /** Called when the user taps the Toggle Layout button */
@@ -210,19 +223,12 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun updateCH6SwitchUI() {
-        val positionText = when (ch6Position) {
-            CH6Position.LOW -> "LOW"
-            CH6Position.MIDDLE -> "MID"
-            CH6Position.HIGH -> "HIGH"
-        }
-        ch6Switch.text = "CH6: $positionText"
-
-        // Set visual feedback color based on position
-        when (ch6Position) {
-            CH6Position.LOW -> ch6Switch.setBackgroundColor(ContextCompat.getColor(this, android.R.color.holo_red_light))
-            CH6Position.MIDDLE -> ch6Switch.setBackgroundColor(ContextCompat.getColor(this, android.R.color.holo_orange_light))
-            CH6Position.HIGH -> ch6Switch.setBackgroundColor(ContextCompat.getColor(this, android.R.color.holo_green_light))
+    private fun updateThreePositionSwitchUI(switch: ThreePositionSwitch) {
+        // Set visual feedback color based on position only, no text label
+        when (switch.position) {
+            SwitchPosition.LOW -> switch.button.setBackgroundColor(ContextCompat.getColor(this, android.R.color.holo_red_light))
+            SwitchPosition.MIDDLE -> switch.button.setBackgroundColor(ContextCompat.getColor(this, android.R.color.holo_orange_light))
+            SwitchPosition.HIGH -> switch.button.setBackgroundColor(ContextCompat.getColor(this, android.R.color.holo_green_light))
         }
     }
 
@@ -379,10 +385,14 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-        if(manualSwitch.isChecked){
-            crsfData.data_array[7]=duty2CRSF(1f)
-        }else{
-            crsfData.data_array[7]=duty2CRSF(0f)
+        // Process all three-position switches
+        listOf(ch6SwitchControl, ch7SwitchControl, ch8SwitchControl).forEach { switch ->
+            val value = when (switch.position) {
+                SwitchPosition.LOW -> 0f      // Lowest value
+                SwitchPosition.MIDDLE -> 0.5f // Middle value
+                SwitchPosition.HIGH -> 1f     // Highest value
+            }
+            crsfData.data_array[switch.dataArrayIndex] = duty2CRSF(value)
         }
 
         if(armSwitch.isChecked){
@@ -391,14 +401,6 @@ class MainActivity : AppCompatActivity() {
         }else{
             crsfData.data_array[4]=duty2CRSF(0f)
         }
-
-        // Set CH6 value based on position
-        val ch6Value = when (ch6Position) {
-            CH6Position.LOW -> 0f      // Lowest value
-            CH6Position.MIDDLE -> 0.5f // Middle value
-            CH6Position.HIGH -> 1f     // Highest value
-        }
-        crsfData.data_array[5] = duty2CRSF(ch6Value)  // CH6 corresponds to index 5
 
         if (serialOpened) {
             bytes = crsfData.pack().toByteArray()

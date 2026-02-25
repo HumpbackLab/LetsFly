@@ -62,7 +62,7 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
-            android:gravity="center"
+            android:gravity="center_horizontal|fill_horizontal"
             android:padding="@dimen/spacing_s"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
@@ -71,25 +71,37 @@
         <!-- Arm Switch -->
         <Switch
                 android:id="@+id/switchArm"
-                android:layout_width="wrap_content"
+                android:layout_width="0dp"
                 android:layout_height="@dimen/button_height"
-                android:layout_marginEnd="@dimen/spacing_l"
+                android:layout_weight="1"
+                android:layout_marginEnd="@dimen/spacing_s"
                 android:text="Arm"/>
-
-        <!-- Manual Switch -->
-        <Switch
-                android:id="@+id/switchManual"
-                android:layout_width="wrap_content"
-                android:layout_height="@dimen/button_height"
-                android:layout_marginEnd="@dimen/spacing_l"
-                android:text="Manual"/>
 
         <!-- CH6 Three-Position Switch -->
         <Button
                 android:id="@+id/switchCH6"
-                android:layout_width="wrap_content"
+                android:layout_width="0dp"
                 android:layout_height="@dimen/button_height"
-                android:text="CH6: MID"/>
+                android:layout_weight="1"
+                android:layout_marginEnd="@dimen/spacing_s"
+                android:text="CH6"/>
+
+        <!-- CH7 Three-Position Switch -->
+        <Button
+                android:id="@+id/switchCH7"
+                android:layout_width="0dp"
+                android:layout_height="@dimen/button_height"
+                android:layout_weight="1"
+                android:layout_marginEnd="@dimen/spacing_s"
+                android:text="CH7"/>
+
+        <!-- CH8 Three-Position Switch -->
+        <Button
+                android:id="@+id/switchCH8"
+                android:layout_width="0dp"
+                android:layout_height="@dimen/button_height"
+                android:layout_weight="1"
+                android:text="CH8"/>
 
     </LinearLayout>
 

@@ -95,21 +95,29 @@
                     android:layout_marginEnd="@dimen/spacing_s"
                     android:text="Arm"/>
 
-            <!-- Manual Switch -->
-            <Switch
-                    android:id="@+id/switchManual"
-                    android:layout_width="wrap_content"
-                    android:layout_height="@dimen/button_height"
-                    android:layout_marginEnd="@dimen/spacing_s"
-                    android:text="Manual"/>
-
             <!-- CH6 Three-Position Switch -->
             <Button
                     android:id="@+id/switchCH6"
                     android:layout_width="wrap_content"
                     android:layout_height="@dimen/button_height"
                     android:layout_marginEnd="@dimen/spacing_s"
-                    android:text="CH6: MID"/>
+                    android:text="CH6"/>
+
+            <!-- CH7 Three-Position Switch -->
+            <Button
+                    android:id="@+id/switchCH7"
+                    android:layout_width="wrap_content"
+                    android:layout_height="@dimen/button_height"
+                    android:layout_marginEnd="@dimen/spacing_s"
+                    android:text="CH7"/>
+
+            <!-- CH8 Three-Position Switch -->
+            <Button
+                    android:id="@+id/switchCH8"
+                    android:layout_width="wrap_content"
+                    android:layout_height="@dimen/button_height"
+                    android:layout_marginEnd="@dimen/spacing_s"
+                    android:text="CH8"/>
 
         </LinearLayout>
     </LinearLayout>
