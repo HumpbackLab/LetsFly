@@ -2,11 +2,14 @@ package com.example.myapplication
 
 import android.content.Context
 import android.content.SharedPreferences
+import android.content.pm.ActivityInfo
 import android.hardware.Sensor
 import android.hardware.SensorManager
 import android.os.Bundle
 import android.widget.Button
 import android.widget.CompoundButton
+import android.widget.RadioButton
+import android.widget.RadioGroup
 import android.widget.SeekBar
 import android.widget.Switch
 import android.widget.TextView
@@ -26,6 +29,9 @@ class SettingsActivity : AppCompatActivity() {
     private lateinit var ch2RangeValue: TextView
     private lateinit var ch3RangeValue: TextView
     private lateinit var ch4RangeValue: TextView
+    private lateinit var orientationRadioGroup: RadioGroup
+    private lateinit var singleHandRadioButton: RadioButton
+    private lateinit var dualHandRadioButton: RadioButton
     private lateinit var backButton: Button
 
     private lateinit var sharedPreferences: SharedPreferences
@@ -38,6 +44,9 @@ class SettingsActivity : AppCompatActivity() {
         private const val KEY_CH2_RANGE = "ch2_range"
         private const val KEY_CH3_RANGE = "ch3_range"
         private const val KEY_CH4_RANGE = "ch4_range"
+        private const val KEY_ORIENTATION_MODE = "orientation_mode"
+        private const val ORIENTATION_SINGLE_HAND = "single_hand"  // portrait
+        private const val ORIENTATION_DUAL_HAND = "dual_hand"     // landscape
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -50,6 +59,7 @@ class SettingsActivity : AppCompatActivity() {
         setupGyroToggle()
         setupSensitivitySlider()
         setupChannelRangeSliders()
+        setupOrientationSelection()
         setupBackButton()
         loadSavedPreferences()
     }
@@ -65,6 +75,9 @@ class SettingsActivity : AppCompatActivity() {
         ch2RangeValue = findViewById(R.id.ch2RangeValue)
         ch3RangeValue = findViewById(R.id.ch3RangeValue)
         ch4RangeValue = findViewById(R.id.ch4RangeValue)
+        orientationRadioGroup = findViewById(R.id.orientationRadioGroup)
+        singleHandRadioButton = findViewById(R.id.singleHandRadioButton)
+        dualHandRadioButton = findViewById(R.id.dualHandRadioButton)
         backButton = findViewById(R.id.backButton)
     }
 
@@ -234,8 +247,52 @@ class SettingsActivity : AppCompatActivity() {
         })
     }
 
+    private fun setupOrientationSelection() {
+        // Set up the orientation radio group
+        val selectedOrientation = sharedPreferences.getString(KEY_ORIENTATION_MODE, ORIENTATION_SINGLE_HAND)
+
+        when (selectedOrientation) {
+            ORIENTATION_DUAL_HAND -> dualHandRadioButton.isChecked = true
+            else -> singleHandRadioButton.isChecked = true  // Default to single hand
+        }
+
+        orientationRadioGroup.setOnCheckedChangeListener { _, checkedId ->
+            val orientation = when (checkedId) {
+                R.id.dualHandRadioButton -> {
+                    requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
+                    ORIENTATION_DUAL_HAND
+                }
+                else -> { // Default to single hand
+                    requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+                    ORIENTATION_SINGLE_HAND
+                }
+            }
+
+            // Save the setting to shared preferences
+            with(sharedPreferences.edit()) {
+                putString(KEY_ORIENTATION_MODE, orientation)
+                apply()
+            }
+
+            // Show toast with current selection
+            Toast.makeText(this@SettingsActivity,
+                if (orientation == ORIENTATION_SINGLE_HAND) "Single Hand Mode Selected" else "Dual Hand Mode Selected",
+                Toast.LENGTH_SHORT
+            ).show()
+        }
+    }
+
     private fun setupBackButton() {
         backButton.setOnClickListener {
+            // Before closing the settings activity, ensure the main activity's orientation is updated
+            val orientationMode = if (dualHandRadioButton.isChecked) "dual_hand" else "single_hand"
+
+            // Save the setting to shared preferences
+            with(sharedPreferences.edit()) {
+                putString("orientation_mode", orientationMode)
+                apply()
+            }
+
             finish() // Close the settings activity and return to main activity
         }
     }

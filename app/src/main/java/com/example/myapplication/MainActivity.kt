@@ -208,6 +208,28 @@ class MainActivity : AppCompatActivity() {
 
         // Initialize joystick states based on saved preferences
         initializeJoystickStates()
+
+        // Set initial orientation based on settings
+        setInitialOrientation()
+    }
+
+    private fun setInitialOrientation() {
+        // Check shared preferences for the orientation mode
+        val orientationMode = sharedPreferences.getString("orientation_mode", "single_hand")
+        when (orientationMode) {
+            "dual_hand" -> {
+                requestedOrientation = android.content.pm.ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
+            }
+            else -> { // Default to single hand (portrait)
+                requestedOrientation = android.content.pm.ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+            }
+        }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        // Update orientation when activity resumes (e.g., when returning from settings)
+        setInitialOrientation()
     }
 
     private fun initializeJoystickStates() {
@@ -243,13 +265,25 @@ class MainActivity : AppCompatActivity() {
 
     /** Called when the user taps the Toggle Layout button */
     fun toggleLayout(view: View) {
-        // Toggle the requested orientation
+        // Get current orientation to determine what to switch to
         if (resources.configuration.orientation == android.content.res.Configuration.ORIENTATION_PORTRAIT) {
-            // Currently in portrait, request landscape
+            // Currently in portrait, switch to landscape (dual hand mode)
             requestedOrientation = android.content.pm.ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
+
+            // Save the new orientation mode to shared preferences
+            with(sharedPreferences.edit()) {
+                putString("orientation_mode", "dual_hand")
+                apply()
+            }
         } else {
-            // Currently in landscape, request portrait
+            // Currently in landscape, switch to portrait (single hand mode)
             requestedOrientation = android.content.pm.ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+
+            // Save the new orientation mode to shared preferences
+            with(sharedPreferences.edit()) {
+                putString("orientation_mode", "single_hand")
+                apply()
+            }
         }
     }
 
