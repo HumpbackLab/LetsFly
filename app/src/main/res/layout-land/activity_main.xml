@@ -45,7 +45,7 @@
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent">
 
-        <!-- Left Group: Connection and Gyro Buttons -->
+        <!-- Left Group: Connection Button Only -->
         <LinearLayout
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
@@ -61,22 +61,22 @@
                     android:onClick="openSerial"
                     android:text="Connect"/>
 
-            <!-- Use Gyro Button -->
-            <Button
-                    android:id="@+id/useGyroButton"
-                    android:layout_width="@dimen/button_width"
-                    android:layout_height="@dimen/button_height"
-                    android:layout_marginEnd="@dimen/spacing_s"
-                    android:onClick="useGyro"
-                    android:text="Use Gyro"/>
-
         </LinearLayout>
 
-        <!-- Right Group: Switches and Toggle -->
+        <!-- Right Group: Settings, Switches and Toggle -->
         <LinearLayout
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:orientation="horizontal">
+
+            <!-- Settings Button -->
+            <Button
+                    android:id="@+id/settingsButton"
+                    android:layout_width="@dimen/button_width"
+                    android:layout_height="@dimen/button_height"
+                    android:layout_marginEnd="@dimen/spacing_s"
+                    android:onClick="openSettings"
+                    android:text="Settings"/>
 
             <!-- Toggle Layout Button -->
             <Button

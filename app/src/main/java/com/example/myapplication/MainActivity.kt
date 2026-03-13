@@ -3,6 +3,7 @@ package com.example.myapplication
 import android.annotation.SuppressLint
 import android.app.AlertDialog
 import android.content.Context
+import android.content.Intent
 import android.graphics.Color
 import android.hardware.Sensor
 import android.hardware.SensorEvent
@@ -87,6 +88,8 @@ class MainActivity : AppCompatActivity() {
     private var lastUpdateTime = 0L
     private val uiUpdateInterval = 50L // Limit UI updates to every 50ms (20Hz)
 
+    private lateinit var sharedPreferences: android.content.SharedPreferences
+
     private var thrust:Float=0f
 
     private lateinit var leftJoyStick: Joystick
@@ -116,6 +119,10 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
+
+        // Initialize shared preferences
+        sharedPreferences = getSharedPreferences("rc_controller_prefs", Context.MODE_PRIVATE)
+
         val sensorManager = getSystemService(Context.SENSOR_SERVICE) as SensorManager
         val sensor: Sensor? = sensorManager.getDefaultSensor(Sensor.TYPE_GAME_ROTATION_VECTOR)
 
@@ -141,9 +148,18 @@ class MainActivity : AppCompatActivity() {
         leftJoyStick.setOnJoystickMoveListener(
             object : OnJoystickMoveListener {
                 override fun onJoystickValueChanged(x: Float, y: Float) {
-                    if (!useGyroControl) {
-                        crsfData.data_array[3] = duty2CRSF(x / 2f + 0.5f)
-                        crsfData.data_array[2] = duty2CRSF(y / 2f + 0.5f)
+                    val isGyroEnabled = sharedPreferences.getBoolean("gyro_enabled", false)
+                    if (!isGyroEnabled) {
+                        // Apply CH4 (index 3) range adjustment
+                        val ch4RangePercentage = sharedPreferences.getInt("ch4_range", 100) / 100f
+                        val adjustedX = x * ch4RangePercentage
+                        crsfData.data_array[3] = duty2CRSF(adjustedX / 2f + 0.5f)
+
+                        // Apply CH3 (index 2) range adjustment
+                        val ch3RangePercentage = sharedPreferences.getInt("ch3_range", 100) / 100f
+                        crsfData.data_array[2] = duty2CRSF((y / 2f + 0.5f) * ch3RangePercentage) 
+                        // special for throttle, range adjustment is applied after centering to ensure it scales correctly
+                        // from the minimum value
                     }
                 }
             }, 10
@@ -152,9 +168,17 @@ class MainActivity : AppCompatActivity() {
         rightJoyStick.setOnJoystickMoveListener(
             object : OnJoystickMoveListener {
                 override fun onJoystickValueChanged(x: Float, y: Float) {
-                    if (!useGyroControl) {
-                        crsfData.data_array[0] = duty2CRSF(x / 2 + 0.5f)
-                        crsfData.data_array[1] = duty2CRSF(y / 2 + 0.5f)
+                    val isGyroEnabled = sharedPreferences.getBoolean("gyro_enabled", false)
+                    if (!isGyroEnabled) {
+                        // Apply CH1 (index 0) range adjustment
+                        val ch1RangePercentage = sharedPreferences.getInt("ch1_range", 100) / 100f
+                        val adjustedX = x * ch1RangePercentage
+                        crsfData.data_array[0] = duty2CRSF(adjustedX / 2 + 0.5f)
+
+                        // Apply CH2 (index 1) range adjustment
+                        val ch2RangePercentage = sharedPreferences.getInt("ch2_range", 100) / 100f
+                        val adjustedY = y * ch2RangePercentage
+                        crsfData.data_array[1] = duty2CRSF(adjustedY / 2 + 0.5f)
                     }
                 }
             }, 10
@@ -181,6 +205,20 @@ class MainActivity : AppCompatActivity() {
             print(String.format("%02X,", i))
         }
         println("")
+
+        // Initialize joystick states based on saved preferences
+        initializeJoystickStates()
+    }
+
+    private fun initializeJoystickStates() {
+        val isGyroEnabled = sharedPreferences.getBoolean("gyro_enabled", false)
+        if (isGyroEnabled) {
+            leftJoyStick.enable = false
+            rightJoyStick.enable = false
+        } else {
+            leftJoyStick.enable = true
+            rightJoyStick.enable = true
+        }
     }
 
     // Helper function to create a three-position switch
@@ -304,27 +342,32 @@ class MainActivity : AppCompatActivity() {
 
     @SuppressLint("SetTextI18n")
     fun useGyro(view: View) {
-        if (!useGyroControl) {
-            useGyroControl = true
+        // Toggle the gyro control state in shared preferences
+        val currentGyroState = sharedPreferences.getBoolean("gyro_enabled", false)
+        val newGyroState = !currentGyroState
+
+        with(sharedPreferences.edit()) {
+            putBoolean("gyro_enabled", newGyroState)
+            apply()
+        }
+
+        // Since the button no longer exists in UI, we just update the internal state
+        // The actual enabling/disabling of joysticks is handled by checking preferences
+
+        // If needed, you can update the joysticks immediately based on the new state
+        if (newGyroState) {
             leftJoyStick.enable = false
             rightJoyStick.enable = false
-
-            findViewById<Button>(R.id.useGyroButton).text = "USE Joystick"
-            thrust=0f
         } else {
-            useGyroControl = false
             leftJoyStick.enable = true
             rightJoyStick.enable = true
-            findViewById<Button>(R.id.useGyroButton).text = "USE Gyro"
         }
+    }
 
-        // Visual feedback for the button
-        val button = findViewById<Button>(R.id.useGyroButton)
-        if (useGyroControl) {
-            button.setBackgroundColor(ContextCompat.getColor(this, android.R.color.holo_green_light))
-        } else {
-            button.setBackgroundColor(ContextCompat.getColor(this, android.R.color.holo_blue_light))
-        }
+    /** Called when the user taps the Settings button */
+    fun openSettings(view: View) {
+        val intent = Intent(this, SettingsActivity::class.java)
+        startActivity(intent)
     }
 
     fun constrain(min: Float, max: Float, value: Float): Float {
@@ -365,19 +408,39 @@ class MainActivity : AppCompatActivity() {
     fun sensorCallBack(listen: MyListener) {
         val currentTime = System.currentTimeMillis()
 
+        // Read gyro control state from shared preferences
+        val isGyroEnabled = sharedPreferences.getBoolean("gyro_enabled", false)
+
         // Update CRSF data regardless of UI throttling
-        if (useGyroControl) {
+        if (isGyroEnabled) {
             val tempRoll = constrain(-130f, -50f, listen.pitch) + 50
             val tempPitch = constrain(-40f, 40f, listen.roll) + 40
 
             val tempYaw = constrain(-40f,40f,listen.yaw-yaw_offset)+40
 
-            crsfData.data_array[0] = duty2CRSF(1 + tempRoll / 80)   // raw:0~-180
-            crsfData.data_array[1] = duty2CRSF(tempPitch / 80)  // raw:-90~90
+            // Apply CH1 range adjustment (for roll)
+            val ch1RangePercentage = sharedPreferences.getInt("ch1_range", 100) / 100f
+            val adjustedRollValue = 1 + (tempRoll / 80) * ch1RangePercentage
+            crsfData.data_array[0] = duty2CRSF(adjustedRollValue)   // raw:0~-180
+
+            // Apply CH2 range adjustment (for pitch)
+            val ch2RangePercentage = sharedPreferences.getInt("ch2_range", 100) / 100f
+            val adjustedPitchValue = (tempPitch / 80) * ch2RangePercentage
+            crsfData.data_array[1] = duty2CRSF(adjustedPitchValue)  // raw:-90~90
+
             crsfData.data_array[2] = duty2CRSF(thrust)
-            crsfData.data_array[3] = duty2CRSF(tempYaw/80)
+
+            // Apply CH4 range adjustment (for yaw)
+            val ch4RangePercentage = sharedPreferences.getInt("ch4_range", 100) / 100f
+            val adjustedYawValue = (tempYaw/80) * ch4RangePercentage
+            crsfData.data_array[3] = duty2CRSF(adjustedYawValue)
+
             leftJoyStick.setXY(0f,(thrust-0.5f)*2f)
-            rightJoyStick.setXY((1 + tempRoll / 80) * 2 - 1, (tempPitch / 80) * 2 - 1)
+
+            // Apply range adjustments to the right joystick display as well
+            val adjustedRightX = ((1 + tempRoll / 80) * 2 - 1) * ch1RangePercentage
+            val adjustedRightY = ((tempPitch / 80) * 2 - 1) * ch2RangePercentage
+            rightJoyStick.setXY(adjustedRightX, adjustedRightY)
 
             if(listen.pitch > -20 || listen.pitch < -160){
                 // a fast way to stop
