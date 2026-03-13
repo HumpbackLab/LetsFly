@@ -508,9 +508,17 @@ class MainActivity : AppCompatActivity() {
         if (currentTime - lastUpdateTime >= uiUpdateInterval) {
             lastUpdateTime = currentTime
 
-            val channel_text = crsfData.data_array.map { "$it" }.joinToString("  ")
-            findViewById<TextView>(R.id.testView).text = channel_text + "\nroll ${listen.roll} \npitch:${listen.pitch}" +
-                    "\nyaw:${listen.yaw}\nyaw_offset:${yaw_offset}\n"
+            // Check if debug values should be shown based on settings
+            val showDebugValues = sharedPreferences.getBoolean("show_values", false)
+
+            if (showDebugValues) {
+                val channel_text = crsfData.data_array.map { "$it" }.joinToString("  ")
+                findViewById<TextView>(R.id.testView).text = channel_text + "\nroll ${listen.roll} \npitch:${listen.pitch}" +
+                        "\nyaw:${listen.yaw}\nyaw_offset:${yaw_offset}\n"
+            } else {
+                // If debug values are hidden, clear the text view or show nothing
+                findViewById<TextView>(R.id.testView).text = ""
+            }
         }
     }
 }

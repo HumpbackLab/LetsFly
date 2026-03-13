@@ -253,6 +253,85 @@
 
         </LinearLayout>
 
+        <!-- Display Values Toggle Section -->
+        <TextView
+            android:id="@+id/displayValuesLabel"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/spacing_l"
+            android:layout_marginStart="@dimen/spacing_m"
+            android:text="Debug Options"
+            android:textSize="@dimen/text_size_large"
+            android:textStyle="bold"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/channelRangeContainer" />
+
+        <LinearLayout
+            android:id="@+id/displayValuesContainer"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_margin="@dimen/spacing_m"
+            android:orientation="vertical"
+            android:padding="@dimen/spacing_s"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/displayValuesLabel">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:padding="@dimen/spacing_s">
+
+                <Switch
+                    android:id="@+id/showValuesToggle"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="Show Debug Values (Channels/Angles)"
+                    android:textSize="@dimen/text_size_normal" />
+
+            </LinearLayout>
+
+        </LinearLayout>
+
+        <!-- Additional Settings Section (can be expanded later) -->
+        <TextView
+            android:id="@+id/additionalSettingsLabel"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/spacing_l"
+            android:layout_marginStart="@dimen/spacing_m"
+            android:text="Additional Settings"
+            android:textSize="@dimen/text_size_large"
+            android:textStyle="bold"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/displayValuesContainer" />
+
+        <LinearLayout
+            android:id="@+id/additionalSettingsContainer"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_margin="@dimen/spacing_m"
+            android:orientation="vertical"
+            android:padding="@dimen/spacing_s"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/additionalSettingsLabel">
+
+            <!-- Placeholder for future settings -->
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:padding="@dimen/spacing_s"
+                android:text="More settings coming soon..."
+                android:textAlignment="center"
+                android:textColor="@android:color/darker_gray"
+                android:textSize="@dimen/text_size_normal" />
+
+        </LinearLayout>
+
         <!-- Orientation Selection Section -->
         <TextView
             android:id="@+id/orientationLabel"
@@ -264,7 +343,7 @@
             android:textSize="@dimen/text_size_large"
             android:textStyle="bold"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/channelRangeContainer" />
+            app:layout_constraintTop_toBottomOf="@id/additionalSettingsContainer" />
 
         <RadioGroup
             android:id="@+id/orientationRadioGroup"
@@ -296,42 +375,6 @@
 
         </RadioGroup>
 
-        <!-- Additional Settings Section (can be expanded later) -->
-        <TextView
-            android:id="@+id/additionalSettingsLabel"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="@dimen/spacing_l"
-            android:layout_marginStart="@dimen/spacing_m"
-            android:text="Additional Settings"
-            android:textSize="@dimen/text_size_large"
-            android:textStyle="bold"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/orientationRadioGroup" />
-
-        <LinearLayout
-            android:id="@+id/additionalSettingsContainer"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_margin="@dimen/spacing_m"
-            android:orientation="vertical"
-            android:padding="@dimen/spacing_s"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/additionalSettingsLabel">
-
-            <!-- Placeholder for future settings -->
-            <TextView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:padding="@dimen/spacing_s"
-                android:text="More settings coming soon..."
-                android:textAlignment="center"
-                android:textColor="@android:color/darker_gray"
-                android:textSize="@dimen/text_size_normal" />
-
-        </LinearLayout>
-
         <!-- Back Button -->
         <Button
             android:id="@+id/backButton"
@@ -342,7 +385,7 @@
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/additionalSettingsContainer" />
+            app:layout_constraintTop_toBottomOf="@id/orientationRadioGroup" />
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 </ScrollView>

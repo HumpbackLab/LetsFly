@@ -29,6 +29,7 @@ class SettingsActivity : AppCompatActivity() {
     private lateinit var ch2RangeValue: TextView
     private lateinit var ch3RangeValue: TextView
     private lateinit var ch4RangeValue: TextView
+    private lateinit var showValuesToggle: Switch
     private lateinit var orientationRadioGroup: RadioGroup
     private lateinit var singleHandRadioButton: RadioButton
     private lateinit var dualHandRadioButton: RadioButton
@@ -45,6 +46,7 @@ class SettingsActivity : AppCompatActivity() {
         private const val KEY_CH3_RANGE = "ch3_range"
         private const val KEY_CH4_RANGE = "ch4_range"
         private const val KEY_ORIENTATION_MODE = "orientation_mode"
+        private const val KEY_SHOW_VALUES = "show_values"
         private const val ORIENTATION_SINGLE_HAND = "single_hand"  // portrait
         private const val ORIENTATION_DUAL_HAND = "dual_hand"     // landscape
     }
@@ -59,6 +61,7 @@ class SettingsActivity : AppCompatActivity() {
         setupGyroToggle()
         setupSensitivitySlider()
         setupChannelRangeSliders()
+        setupShowValuesToggle()
         setupOrientationSelection()
         setupBackButton()
         loadSavedPreferences()
@@ -75,6 +78,7 @@ class SettingsActivity : AppCompatActivity() {
         ch2RangeValue = findViewById(R.id.ch2RangeValue)
         ch3RangeValue = findViewById(R.id.ch3RangeValue)
         ch4RangeValue = findViewById(R.id.ch4RangeValue)
+        showValuesToggle = findViewById(R.id.showValuesToggle)
         orientationRadioGroup = findViewById(R.id.orientationRadioGroup)
         singleHandRadioButton = findViewById(R.id.singleHandRadioButton)
         dualHandRadioButton = findViewById(R.id.dualHandRadioButton)
@@ -90,11 +94,6 @@ class SettingsActivity : AppCompatActivity() {
                 putBoolean(KEY_GYRO_ENABLED, isChecked)
                 apply()
             }
-
-            Toast.makeText(this,
-                if (isChecked) "Gyro control enabled" else "Gyro control disabled",
-                Toast.LENGTH_SHORT
-            ).show()
         }
     }
 
@@ -113,12 +112,6 @@ class SettingsActivity : AppCompatActivity() {
                     putInt(KEY_GYRO_SENSITIVITY, sensitivityValue)
                     apply()
                 }
-
-                // Show toast with current sensitivity
-                Toast.makeText(this@SettingsActivity,
-                    "Sensitivity: $sensitivityValue",
-                    Toast.LENGTH_SHORT
-                ).show()
             }
 
             override fun onStartTrackingTouch(seekBar: SeekBar?) {}
@@ -147,12 +140,6 @@ class SettingsActivity : AppCompatActivity() {
                     putInt(KEY_CH1_RANGE, rangeValue)
                     apply()
                 }
-
-                // Show toast with current range
-                Toast.makeText(this@SettingsActivity,
-                    "CH1 Range: $rangeValue%",
-                    Toast.LENGTH_SHORT
-                ).show()
             }
 
             override fun onStartTrackingTouch(seekBar: SeekBar?) {}
@@ -176,12 +163,6 @@ class SettingsActivity : AppCompatActivity() {
                     putInt(KEY_CH2_RANGE, rangeValue)
                     apply()
                 }
-
-                // Show toast with current range
-                Toast.makeText(this@SettingsActivity,
-                    "CH2 Range: $rangeValue%",
-                    Toast.LENGTH_SHORT
-                ).show()
             }
 
             override fun onStartTrackingTouch(seekBar: SeekBar?) {}
@@ -205,12 +186,6 @@ class SettingsActivity : AppCompatActivity() {
                     putInt(KEY_CH3_RANGE, rangeValue)
                     apply()
                 }
-
-                // Show toast with current range
-                Toast.makeText(this@SettingsActivity,
-                    "CH3 Range: $rangeValue%",
-                    Toast.LENGTH_SHORT
-                ).show()
             }
 
             override fun onStartTrackingTouch(seekBar: SeekBar?) {}
@@ -234,17 +209,24 @@ class SettingsActivity : AppCompatActivity() {
                     putInt(KEY_CH4_RANGE, rangeValue)
                     apply()
                 }
-
-                // Show toast with current range
-                Toast.makeText(this@SettingsActivity,
-                    "CH4 Range: $rangeValue%",
-                    Toast.LENGTH_SHORT
-                ).show()
             }
 
             override fun onStartTrackingTouch(seekBar: SeekBar?) {}
             override fun onStopTrackingTouch(seekBar: SeekBar?) {}
         })
+    }
+
+    private fun setupShowValuesToggle() {
+        // Set the initial state of the toggle based on saved preference
+        showValuesToggle.isChecked = sharedPreferences.getBoolean(KEY_SHOW_VALUES, false)
+
+        showValuesToggle.setOnCheckedChangeListener { _, isChecked ->
+            // Save the setting to shared preferences
+            with(sharedPreferences.edit()) {
+                putBoolean(KEY_SHOW_VALUES, isChecked)
+                apply()
+            }
+        }
     }
 
     private fun setupOrientationSelection() {
@@ -273,12 +255,6 @@ class SettingsActivity : AppCompatActivity() {
                 putString(KEY_ORIENTATION_MODE, orientation)
                 apply()
             }
-
-            // Show toast with current selection
-            Toast.makeText(this@SettingsActivity,
-                if (orientation == ORIENTATION_SINGLE_HAND) "Single Hand Mode Selected" else "Dual Hand Mode Selected",
-                Toast.LENGTH_SHORT
-            ).show()
         }
     }
 
