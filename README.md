@@ -1,15 +1,18 @@
-# RC控制器应用
+# Let's Fly - RC控制器应用
 
 一款用于通过CRSF协议控制RC设备的安卓应用程序。该应用提供了直观的操纵杆控制、陀螺仪飞行控制以及可配置的通道开关，带来全面的遥控体验。
 
 ## 功能特性
 
-- **双操纵杆控制**: 左右操纵杆实现传统遥控风格的控制
+- **双操纵杆控制**: 左右操纵杆实现传统RC风格的控制
 - **陀螺仪飞行模式**: 使用手机陀螺仪进行沉浸式飞行控制
 - **多通道开关**: CH6、CH7和CH8三位开关，带颜色编码的位置指示
+- **解锁开关优化**: 改进的视觉反馈，绿色表示解锁，红色表示锁定
 - **横屏与竖屏模式**: 支持两种方向的自适应用户界面
 - **USB串口通信**: 通过USB直接连接RC硬件，支持CH34x驱动
 - **实时遥测**: 显示通道值和传感器数据以供调试
+- **国际化支持**: 多语言支持框架，现已包含中文翻译
+- **操纵杆定制**: 自定义颜色和尺寸以提升用户体验
 
 ## 设置与安装
 
@@ -31,7 +34,7 @@
 - **连接按钮**: 通过USB串口建立与RC硬件的连接
 - **使用陀螺仪按钮**: 在操纵杆和陀螺仪控制模式之间切换
 - **竖屏/横屏切换**: 在屏幕方向之间切换
-- **解锁开关**: 解锁/锁定RC系统
+- **解锁开关**: 解锁/锁定RC系统（优化后的视觉反馈）
 - **CH6/CH7/CH8开关**: 三位开关辅助功能（颜色指示位置：红色=低，橙色=中，绿色=高）
 
 ### 飞行模式
@@ -52,15 +55,28 @@
 
 ```
 app/
-├── src/main/java/com/example/myapplication/    # 主应用程序代码
-│   └── MainActivity.kt                         # 主应用程序逻辑
-├── src/main/java/                              # 自定义组件
-│   ├── Joystick.kt                             # 自定义操纵杆视图
-│   └── CRSFData.kt                             # CRSF协议实现
-├── src/main/res/                               # 资源（布局、图像等）
-└── src/main/AndroidManifest.xml                # 应用清单
-ch34x/                                          # USB驱动模块
+├── src/main/java/com/humpbacklab/letsfly/    # 主应用程序代码
+│   ├── MainActivity.kt                      # 主应用程序逻辑
+│   ├── SettingsActivity.kt                  # 设置页面
+│   └── ...                                  # 其他组件
+├── src/main/java/                           # 自定义组件
+│   ├── Joystick.kt                          # 自定义操纵杆视图
+│   └── CRSFData.kt                          # CRSF协议实现
+├── src/main/res/                            # 资源（布局、图像、字符串等）
+│   ├── layout/                              # 布局文件
+│   ├── values/                              # 字符串和颜色资源
+│   ├── values-zh-rCN/                       # 中文本地化资源
+│   └── ...                                  # 其他资源
+└── src/main/AndroidManifest.xml             # 应用清单
+ch34x/                                       # USB驱动模块
 ```
+
+## 国际化
+
+应用现在支持多语言：
+- 英语（默认）
+- 简体中文
+- 要添加新语言，在 `app/src/main/res/` 目录下创建相应语言的资源文件夹（如 `values-es/`）并添加 `strings.xml`
 
 ## 自定义
 
@@ -71,13 +87,20 @@ ch34x/                                          # USB驱动模块
 3. 将其映射到相应的CRSF数据数组索引
 
 ### 操纵杆配置
-使用布局文件中的XML属性来自定义操纵杆灵敏度和外观。
+使用布局文件中的XML属性来自定义操纵杆灵敏度和外观。您可以使用以下自定义属性：
+- `joystickBackgroundColor`: 操纵杆背景颜色
+- `joystickInnerCircleColor`: 内圈颜色
+- `joystickButtonColor`: 按钮颜色
+
+### 开关样式
+解锁开关现在具有优化的视觉反馈，使用更直观的颜色方案。
 
 ## 故障排除
 
 - **连接问题**: 确保已授予USB权限且CH34x驱动正确配置
 - **陀螺仪无响应**: 检查是否已授予陀螺仪权限
 - **控制无效**: 验证CRSF协议设置是否匹配您的RC硬件
+- **界面问题**: 如果遇到UI显示异常，请尝试重启应用
 
 ## 贡献
 
@@ -89,7 +112,7 @@ ch34x/                                          # USB驱动模块
 
 ---
 
-# RC Controller App
+# Let's Fly - RC Controller App
 
 An Android application designed for controlling RC aircraft and other devices using the CRSF (Crossfire) protocol. The app provides intuitive joystick controls, gyroscope-based flight control, and configurable channel switches for a comprehensive RC experience.
 
@@ -98,9 +121,12 @@ An Android application designed for controlling RC aircraft and other devices us
 - **Dual Joystick Control**: Left and right joysticks for traditional RC-style control
 - **Gyroscope Flight Mode**: Use phone's gyroscope for immersive flight control
 - **Multiple Channel Switches**: Three-position switches for CH6, CH7, and CH8 with color-coded positions
+- **Improved Arm Switch**: Enhanced visual feedback with green for armed, red for disarmed
 - **Portrait & Landscape Modes**: Adaptable UI supporting both orientations
 - **USB Serial Communication**: Direct connection to RC hardware via USB with CH34x driver support
 - **Real-time Telemetry**: Display of channel values and sensor data for debugging
+- **Internationalization**: Multi-language support framework with Chinese translation
+- **Customizable Joysticks**: Custom colors and sizes for enhanced user experience
 
 ## Setup & Installation
 
@@ -122,7 +148,7 @@ An Android application designed for controlling RC aircraft and other devices us
 - **Connect Button**: Establishes connection to RC hardware via USB serial
 - **Use Gyro Button**: Toggles between joystick and gyroscope control modes
 - **Portrait/Landscape Toggle**: Switch between screen orientations
-- **Arm Switch**: Arms/disarms the RC system
+- **Arm Switch**: Arms/disarms the RC system (with improved visual feedback)
 - **CH6/CH7/CH8 Switches**: Three-position switches for auxiliary functions (colors indicate position: red=LOW, orange=MIDDLE, green=HIGH)
 
 ### Flight Modes
@@ -143,15 +169,28 @@ An Android application designed for controlling RC aircraft and other devices us
 
 ```
 app/
-├── src/main/java/com/example/myapplication/    # Main application code
-│   └── MainActivity.kt                         # Main application logic
-├── src/main/java/                              # Custom components
-│   ├── Joystick.kt                             # Custom joystick view
-│   └── CRSFData.kt                             # CRSF protocol implementation
-├── src/main/res/                               # Resources (layouts, drawables, etc.)
-└── src/main/AndroidManifest.xml                # App manifest
-ch34x/                                          # USB driver module
+├── src/main/java/com/humpbacklab/letsfly/    # Main application code
+│   ├── MainActivity.kt                      # Main application logic
+│   ├── SettingsActivity.kt                  # Settings page
+│   └── ...                                  # Other components
+├── src/main/java/                           # Custom components
+│   ├── Joystick.kt                          # Custom joystick view
+│   └── CRSFData.kt                          # CRSF protocol implementation
+├── src/main/res/                            # Resources (layouts, drawables, strings, etc.)
+│   ├── layout/                              # Layout files
+│   ├── values/                              # String and color resources
+│   ├── values-zh-rCN/                       # Chinese localization resources
+│   └── ...                                  # Other resources
+└── src/main/AndroidManifest.xml             # App manifest
+ch34x/                                       # USB driver module
 ```
+
+## Internationalization
+
+The app now supports multiple languages:
+- English (default)
+- Chinese Simplified
+- To add a new language, create a corresponding resource folder (e.g., `values-es/`) in `app/src/main/res/` and add `strings.xml`
 
 ## Customization
 
@@ -162,13 +201,20 @@ The app uses a generic ThreePositionSwitch class that makes it easy to add addit
 3. Map it to the appropriate CRSF data array index
 
 ### Joystick Configuration
-Customize joystick sensitivity and appearance using XML attributes in the layout files.
+Customize joystick sensitivity and appearance using XML attributes in the layout files. You can use these custom attributes:
+- `joystickBackgroundColor`: Background color of the joystick
+- `joystickInnerCircleColor`: Color of the inner circle
+- `joystickButtonColor`: Color of the button
+
+### Switch Styling
+The arm switch now features enhanced visual feedback with a more intuitive color scheme.
 
 ## Troubleshooting
 
 - **Connection Issues**: Ensure USB permissions are granted and CH34x driver is properly configured
 - **Gyroscope Not Responding**: Check that gyroscope permissions are granted
 - **Controls Not Working**: Verify CRSF protocol settings match your RC hardware
+- **UI Issues**: If experiencing UI display anomalies, try restarting the app
 
 ## Contributing
 
