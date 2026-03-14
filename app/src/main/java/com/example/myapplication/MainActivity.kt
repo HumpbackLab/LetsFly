@@ -5,11 +5,13 @@ import android.app.AlertDialog
 import android.content.Context
 import android.content.Intent
 import android.graphics.Color
+import android.graphics.PorterDuff
 import android.hardware.Sensor
 import android.hardware.SensorEvent
 import android.hardware.SensorEventListener
 import android.hardware.SensorManager
 import android.hardware.usb.UsbManager
+import android.os.Build
 import android.os.Bundle
 import android.view.KeyEvent
 import android.view.View
@@ -20,6 +22,7 @@ import android.widget.TableRow
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
+import androidx.core.graphics.ColorUtils
 import androidx.core.view.get
 import com.hehongdan.ch34xuartdriver.CH34xUARTDriver
 import java.lang.Thread.sleep
@@ -288,19 +291,49 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun updateSwitchVisualFeedback(switch: Switch, isChecked: Boolean) {
-        if (isChecked) {
-            switch.setBackgroundColor(ContextCompat.getColor(this, android.R.color.holo_green_light))
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            // For newer Android versions, use theme attributes for better consistency
+            if (isChecked) {
+                switch.thumbTintList = ContextCompat.getColorStateList(this, R.color.switch_arm_on)
+                switch.trackTintList = ContextCompat.getColorStateList(this, R.color.switch_background_on)
+            } else {
+                switch.thumbTintList = ContextCompat.getColorStateList(this, R.color.switch_arm_off)
+                switch.trackTintList = ContextCompat.getColorStateList(this, R.color.switch_background_off)
+            }
         } else {
-            switch.setBackgroundColor(ContextCompat.getColor(this, android.R.color.darker_gray))
+            // For older Android versions, use deprecated but functional setColorFilter
+            if (isChecked) {
+                @Suppress("DEPRECATION")
+                switch.thumbDrawable.setColorFilter(
+                    ContextCompat.getColor(this, R.color.switch_arm_on),
+                    PorterDuff.Mode.MULTIPLY
+                )
+                @Suppress("DEPRECATION")
+                switch.trackDrawable.setColorFilter(
+                    ContextCompat.getColor(this, R.color.switch_background_on),
+                    PorterDuff.Mode.MULTIPLY
+                )
+            } else {
+                @Suppress("DEPRECATION")
+                switch.thumbDrawable.setColorFilter(
+                    ContextCompat.getColor(this, R.color.switch_arm_off),
+                    PorterDuff.Mode.MULTIPLY
+                )
+                @Suppress("DEPRECATION")
+                switch.trackDrawable.setColorFilter(
+                    ContextCompat.getColor(this, R.color.switch_background_off),
+                    PorterDuff.Mode.MULTIPLY
+                )
+            }
         }
     }
 
     private fun updateThreePositionSwitchUI(switch: ThreePositionSwitch) {
         // Set visual feedback color based on position only, no text label
         when (switch.position) {
-            SwitchPosition.LOW -> switch.button.setBackgroundColor(ContextCompat.getColor(this, android.R.color.holo_red_light))
-            SwitchPosition.MIDDLE -> switch.button.setBackgroundColor(ContextCompat.getColor(this, android.R.color.holo_orange_light))
-            SwitchPosition.HIGH -> switch.button.setBackgroundColor(ContextCompat.getColor(this, android.R.color.holo_green_light))
+            SwitchPosition.LOW -> switch.button.setBackgroundColor(ContextCompat.getColor(this, R.color.channel_low))
+            SwitchPosition.MIDDLE -> switch.button.setBackgroundColor(ContextCompat.getColor(this, R.color.channel_middle))
+            SwitchPosition.HIGH -> switch.button.setBackgroundColor(ContextCompat.getColor(this, R.color.channel_high))
         }
     }
 

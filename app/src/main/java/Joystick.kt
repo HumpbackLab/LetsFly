@@ -45,6 +45,11 @@ class Joystick(context: Context, attrs: AttributeSet) : View(context, attrs){
     private val rectangularBoundaryEnabled:Boolean
     private val aspectRatio:Float
 
+    // Custom colors for joystick
+    private val joystickBackgroundColor: Int
+    private val joystickInnerCircleColor: Int
+    private val joystickButtonColor: Int
+
     private val xReturnDefault:Boolean
     private val yReturnDefault:Boolean
 
@@ -65,6 +70,11 @@ class Joystick(context: Context, attrs: AttributeSet) : View(context, attrs){
                 yReturnDefault = getBoolean(R.styleable.Joystick_yReturnDefault,true)
                 rectangularBoundaryEnabled = getBoolean(R.styleable.Joystick_rectangularBoundaryEnabled,false)
                 aspectRatio = getFloat(R.styleable.Joystick_aspectRatio, 1.0f)
+
+                // Get custom colors with default fallbacks
+                joystickBackgroundColor = getColor(R.styleable.Joystick_joystickBackgroundColor, Color.parseColor("#E0E0E0"))
+                joystickInnerCircleColor = getColor(R.styleable.Joystick_joystickInnerCircleColor, Color.parseColor("#BDBDBD"))
+                joystickButtonColor = getColor(R.styleable.Joystick_joystickButtonColor, Color.parseColor("#2196F3"))
             } finally {
                 recycle()
             }
@@ -90,15 +100,15 @@ class Joystick(context: Context, attrs: AttributeSet) : View(context, attrs){
 
     private val mainCirclePaint = Paint(ANTI_ALIAS_FLAG).apply {
         style = Paint.Style.FILL_AND_STROKE
-        color = Color.BLUE
+        color = joystickBackgroundColor
     }
     private val sencondCirclePaint = Paint(0).apply {
         style = Paint.Style.STROKE
-        color = Color.GREEN
+        color = joystickInnerCircleColor
     }
 
     private val buttonPaint = Paint(ANTI_ALIAS_FLAG).apply {
-        color = Color.RED
+        color = joystickButtonColor
         style = Paint.Style.FILL
     }
 

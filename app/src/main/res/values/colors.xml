@@ -7,4 +7,27 @@
     <color name="teal_700">#FF018786</color>
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
+
+    <!-- Custom colors for RC controller -->
+    <color name="joystick_background">#E0E0E0</color>
+    <color name="joystick_inner_circle">#BDBDBD</color>
+    <color name="joystick_button">#2196F3</color>
+    <color name="joystick_button_pressed">#1976D2</color>
+    <color name="switch_arm_on">#4CAF50</color>
+    <color name="switch_arm_off">#F44336</color>
+    <color name="switch_ch6_on">#FF9800</color>
+    <color name="switch_ch6_off">#757575</color>
+    <color name="switch_ch7_on">#9C27B0</color>
+    <color name="switch_ch7_off">#757575</color>
+    <color name="switch_ch8_on">#FF5722</color>
+    <color name="switch_ch8_off">#757575</color>
+    <color name="channel_low">#F44336</color>
+    <color name="channel_middle">#FFEB3B</color>
+    <color name="channel_high">#4CAF50</color>
+
+    <!-- Improved switch colors -->
+    <color name="switch_background_on">#E8F5E8</color> <!-- Light green background when on -->
+    <color name="switch_background_off">#FFEEEE</color> <!-- Light red background when off -->
+    <color name="switch_thumb_on">#4CAF50</color>      <!-- Green thumb when on -->
+    <color name="switch_thumb_off">#B71C1C</color>     <!-- Dark red thumb when off -->
 </resources>

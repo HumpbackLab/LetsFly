@@ -20,7 +20,10 @@
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintHorizontal_bias="0.25"
-            app:layout_constraintVertical_bias="0.9"/>
+            app:layout_constraintVertical_bias="0.9"
+            app:joystickBackgroundColor="@color/joystick_background"
+            app:joystickInnerCircleColor="@color/joystick_inner_circle"
+            app:joystickButtonColor="@color/joystick_button"/>
 
     <!-- Right Joystick - positioned in bottom-right quadrant for easy thumb access -->
     <com.example.myapplication.Joystick
@@ -32,7 +35,10 @@
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintHorizontal_bias="0.75"
-            app:layout_constraintVertical_bias="0.9"/>
+            app:layout_constraintVertical_bias="0.9"
+            app:joystickBackgroundColor="@color/joystick_background"
+            app:joystickInnerCircleColor="@color/joystick_inner_circle"
+            app:joystickButtonColor="@color/joystick_button"/>
 
     <!-- Top Controls Container -->
     <LinearLayout

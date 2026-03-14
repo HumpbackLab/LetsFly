@@ -132,7 +132,10 @@
             android:layout_marginBottom="@dimen/margin_joystick_bottom"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintBottom_toBottomOf="parent"/>
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:joystickBackgroundColor="@color/joystick_background"
+            app:joystickInnerCircleColor="@color/joystick_inner_circle"
+            app:joystickButtonColor="@color/joystick_button"/>
 
     <!-- Right Joystick - hidden in portrait mode but still available for gyro mode -->
     <com.example.myapplication.Joystick
@@ -140,6 +143,9 @@
             android:layout_width="@dimen/joystick_width"
             android:layout_height="@dimen/joystick_height"
             app:showText="false"
+            app:joystickBackgroundColor="@color/joystick_background"
+            app:joystickInnerCircleColor="@color/joystick_inner_circle"
+            app:joystickButtonColor="@color/joystick_button"
             android:visibility="gone"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintEnd_toEndOf="parent"

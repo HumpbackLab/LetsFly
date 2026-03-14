@@ -132,7 +132,10 @@
                 app:defaultXPercent="0"
                 app:defaultYPercent="-1"
                 app:yReturnDefault="false"
-                app:showText="false"/>
+                app:showText="false"
+                app:joystickBackgroundColor="@color/joystick_background"
+                app:joystickInnerCircleColor="@color/joystick_inner_circle"
+                app:joystickButtonColor="@color/joystick_button"/>
 
         <!-- Right Joystick -->
         <com.example.myapplication.Joystick
@@ -141,7 +144,10 @@
                 android:layout_height="match_parent"
                 android:layout_weight="1"
                 android:layout_marginStart="@dimen/spacing_m"
-                app:showText="false"/>
+                app:showText="false"
+                app:joystickBackgroundColor="@color/joystick_background"
+                app:joystickInnerCircleColor="@color/joystick_inner_circle"
+                app:joystickButtonColor="@color/joystick_button"/>
 
     </LinearLayout>
 
