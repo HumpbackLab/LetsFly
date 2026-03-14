@@ -1,4 +1,4 @@
-package com.example.myapplication
+package com.humpbacklab.letsfly
 
 import android.opengl.GLSurfaceView
 import android.opengl.GLU

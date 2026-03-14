@@ -1,4 +1,4 @@
-package com.example.myapplication
+package com.humpbacklab.letsfly
 
 class CRSFData{
     public val data_array=IntArray(16)

@@ -8,7 +8,7 @@
         tools:context=".MainActivity">
 
     <!-- Left Joystick - positioned in bottom-left quadrant for easy thumb access -->
-    <com.example.myapplication.Joystick
+    <com.humpbacklab.letsfly.Joystick
             android:id="@+id/leftJoystick"
             android:layout_width="@dimen/joystick_width"
             android:layout_height="@dimen/joystick_height"
@@ -26,7 +26,7 @@
             app:joystickButtonColor="@color/joystick_button"/>
 
     <!-- Right Joystick - positioned in bottom-right quadrant for easy thumb access -->
-    <com.example.myapplication.Joystick
+    <com.humpbacklab.letsfly.Joystick
             android:id="@+id/rightJoystick"
             android:layout_width="@dimen/joystick_width"
             android:layout_height="@dimen/joystick_height"

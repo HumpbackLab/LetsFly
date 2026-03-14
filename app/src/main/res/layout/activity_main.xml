@@ -123,7 +123,7 @@
             app:layout_constraintTop_toTopOf="@id/guideline">
 
         <!-- Left Joystick -->
-        <com.example.myapplication.Joystick
+        <com.humpbacklab.letsfly.Joystick
                 android:id="@+id/leftJoystick"
                 android:layout_width="0dp"
                 android:layout_height="match_parent"
@@ -138,7 +138,7 @@
                 app:joystickButtonColor="@color/joystick_button"/>
 
         <!-- Right Joystick -->
-        <com.example.myapplication.Joystick
+        <com.humpbacklab.letsfly.Joystick
                 android:id="@+id/rightJoystick"
                 android:layout_width="0dp"
                 android:layout_height="match_parent"

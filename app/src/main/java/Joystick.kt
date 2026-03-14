@@ -1,4 +1,4 @@
-package com.example.myapplication
+package com.humpbacklab.letsfly
 
 import android.content.Context
 import android.graphics.Canvas
