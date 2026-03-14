@@ -331,14 +331,14 @@ class MainActivity : AppCompatActivity() {
         if(config_ret){
             serialOpened = true
             bytes = crsfData.pack().toByteArray()
-            for (i in 0..500) {
+            for (i in 0..20) {
                 uartWrite(bytes, 26)
-                sleep(10)
+                sleep(5)
             }
             bytes = crsfData.packCmd(0x01u,0x00u).toByteArray()
             for(i in 0..10){
                 uartWrite(bytes, 8)
-                sleep(10)
+                sleep(5)
             }
             debugInfo("config ret:$config_ret")
         }
