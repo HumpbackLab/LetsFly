@@ -1,3 +1,47 @@
 <resources>
     <string name="app_name">Let\'s Fly</string>
+
+    <!-- Main Activity Strings -->
+    <string name="btn_connect">Connect</string>
+    <string name="btn_use_gyro">Use Gyro</string>
+    <string name="btn_portrait">Portrait</string>
+    <string name="btn_landscape">Landscape</string>
+    <string name="btn_arm">Arm</string>
+    <string name="btn_ch6">CH6</string>
+    <string name="btn_ch7">CH7</string>
+    <string name="btn_ch8">CH8</string>
+    <string name="btn_settings">Settings</string>
+
+    <!-- Settings Activity Strings -->
+    <string name="title_settings">Settings</string>
+    <string name="section_gyro_control">Gyro Control</string>
+    <string name="toggle_enable_gyro">Enable Gyro Control</string>
+    <string name="label_gyro_sensitivity">Gyro Sensitivity:</string>
+    <string name="label_low">Low</string>
+    <string name="label_high">High</string>
+    <string name="section_channel_ranges">Channel Ranges</string>
+    <string name="label_ch1_range">CH1 Range:</string>
+    <string name="label_ch2_range">CH2 Range:</string>
+    <string name="label_ch3_range">CH3 Range:</string>
+    <string name="label_ch4_range">CH4 Range:</string>
+    <string name="default_percentage_value">100%</string>
+    <string name="percentage_format">%1$d%%</string>
+    <string name="section_debug_options">Debug Options</string>
+    <string name="toggle_show_debug_values">Show Debug Values (Channels/Angles)</string>
+    <string name="section_additional_settings">Additional Settings</string>
+    <string name="msg_more_settings_coming">More settings coming soon...</string>
+    <string name="section_display_mode">Display Mode</string>
+    <string name="radio_single_hand_portrait">Single Hand Mode (Portrait)</string>
+    <string name="radio_dual_hand_landscape">Dual Hand Mode (Landscape)</string>
+    <string name="btn_back">Back</string>
+
+    <!-- Dialog Messages -->
+    <string name="msg_no_uart_device">No Uart Device!</string>
+    <string name="msg_fail_open_uart">Fail to Open Uart Device!</string>
+    <string name="msg_config_success">Configuration successful</string>
+    <string name="msg_uart_disconnected">Uart device disconnected!</string>
+
+    <!-- Orientation Modes -->
+    <string name="orientation_single_hand">single_hand</string>
+    <string name="orientation_dual_hand">dual_hand</string>
 </resources>

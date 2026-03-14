@@ -261,7 +261,7 @@ class SettingsActivity : AppCompatActivity() {
     private fun setupBackButton() {
         backButton.setOnClickListener {
             // Before closing the settings activity, ensure the main activity's orientation is updated
-            val orientationMode = if (dualHandRadioButton.isChecked) "dual_hand" else "single_hand"
+            val orientationMode = if (dualHandRadioButton.isChecked) getString(R.string.orientation_dual_hand) else getString(R.string.orientation_single_hand)
 
             // Save the setting to shared preferences
             with(sharedPreferences.edit()) {

@@ -1,0 +1,47 @@
+<resources>
+    <string name="app_name">Let\'s Fly</string>
+
+    <!-- Main Activity Strings -->
+    <string name="btn_connect">连接</string>
+    <string name="btn_use_gyro">使用陀螺仪</string>
+    <string name="btn_portrait">竖屏</string>
+    <string name="btn_landscape">横屏</string>
+    <string name="btn_arm">解锁</string>
+    <string name="btn_ch6">通道6</string>
+    <string name="btn_ch7">通道7</string>
+    <string name="btn_ch8">通道8</string>
+    <string name="btn_settings">设置</string>
+
+    <!-- Settings Activity Strings -->
+    <string name="title_settings">设置</string>
+    <string name="section_gyro_control">陀螺仪控制</string>
+    <string name="toggle_enable_gyro">启用陀螺仪控制</string>
+    <string name="label_gyro_sensitivity">陀螺仪灵敏度：</string>
+    <string name="label_low">低</string>
+    <string name="label_high">高</string>
+    <string name="section_channel_ranges">通道范围</string>
+    <string name="label_ch1_range">通道1范围：</string>
+    <string name="label_ch2_range">通道2范围：</string>
+    <string name="label_ch3_range">通道3范围：</string>
+    <string name="label_ch4_range">通道4范围：</string>
+    <string name="default_percentage_value">100%</string>
+    <string name="percentage_format">%1$d%%</string>
+    <string name="section_debug_options">调试选项</string>
+    <string name="toggle_show_debug_values">显示调试值（通道/角度）</string>
+    <string name="section_additional_settings">附加设置</string>
+    <string name="msg_more_settings_coming">更多设置即将到来...</string>
+    <string name="section_display_mode">显示模式</string>
+    <string name="radio_single_hand_portrait">单手模式（竖屏）</string>
+    <string name="radio_dual_hand_landscape">双手模式（横屏）</string>
+    <string name="btn_back">返回</string>
+
+    <!-- Dialog Messages -->
+    <string name="msg_no_uart_device">没有找到串口设备！</string>
+    <string name="msg_fail_open_uart">打开串口设备失败！</string>
+    <string name="msg_config_success">配置成功</string>
+    <string name="msg_uart_disconnected">串口设备已断开连接！</string>
+
+    <!-- Orientation Modes -->
+    <string name="orientation_single_hand">single_hand</string>
+    <string name="orientation_dual_hand">dual_hand</string>
+</resources>

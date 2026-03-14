@@ -319,12 +319,12 @@ class MainActivity : AppCompatActivity() {
     private fun openUartDevice(): Boolean {
         val ret = serialDriver.resumeUsbList()
         if (ret == -1) {
-            debugInfo("No Uart Device!")
+            debugInfo(getString(R.string.msg_no_uart_device))
             return false
         }
 
         if (!serialDriver.uartInit()) {
-            debugInfo("Fail to Open Uart Device!")
+            debugInfo(getString(R.string.msg_fail_open_uart))
             return false
         }
         val config_ret = serialDriver.setConfig(115200, 8, 1, 0, 0)
@@ -340,7 +340,7 @@ class MainActivity : AppCompatActivity() {
                 uartWrite(bytes, 8)
                 sleep(5)
             }
-            debugInfo("config ret:$config_ret")
+            debugInfo("${getString(R.string.msg_config_success)}: $config_ret")
         }
 
         //debugInfo("config ret:$config_ret")
@@ -354,7 +354,7 @@ class MainActivity : AppCompatActivity() {
 
         val ret = serialDriver.writeData(bytearr, len)
         if (ret < 0) {
-            debugInfo("Uart device disconnected!")
+            debugInfo(getString(R.string.msg_uart_disconnected))
             serialOpened = false
             findViewById<Button>(R.id.openSerialButton).isEnabled = true
             try {

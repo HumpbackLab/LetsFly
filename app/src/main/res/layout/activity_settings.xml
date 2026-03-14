@@ -16,7 +16,7 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_margin="@dimen/spacing_m"
-            android:text="Settings"
+            android:text="@string/title_settings"
             android:textSize="@dimen/text_size_title"
             android:textStyle="bold"
             android:gravity="center"
@@ -31,7 +31,7 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="@dimen/spacing_l"
             android:layout_marginStart="@dimen/spacing_m"
-            android:text="Gyro Control"
+            android:text="@string/section_gyro_control"
             android:textSize="@dimen/text_size_large"
             android:textStyle="bold"
             app:layout_constraintStart_toStartOf="parent"
@@ -61,7 +61,7 @@
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
-                    android:text="Enable Gyro Control"
+                    android:text="@string/toggle_enable_gyro"
                     android:textSize="@dimen/text_size_normal" />
 
             </LinearLayout>
@@ -72,7 +72,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="@dimen/spacing_s"
                 android:layout_marginBottom="@dimen/spacing_xs"
-                android:text="Gyro Sensitivity:"
+                android:text="@string/label_gyro_sensitivity"
                 android:textSize="@dimen/text_size_normal" />
 
             <LinearLayout
@@ -86,7 +86,7 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Low"
+                    android:text="@string/label_low"
                     android:textSize="@dimen/text_size_normal" />
 
                 <androidx.appcompat.widget.AppCompatSeekBar
@@ -100,7 +100,7 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="High"
+                    android:text="@string/label_high"
                     android:textSize="@dimen/text_size_normal" />
 
             </LinearLayout>
@@ -114,7 +114,7 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="@dimen/spacing_l"
             android:layout_marginStart="@dimen/spacing_m"
-            android:text="Channel Ranges"
+            android:text="@string/section_channel_ranges"
             android:textSize="@dimen/text_size_large"
             android:textStyle="bold"
             app:layout_constraintStart_toStartOf="parent"
@@ -143,14 +143,14 @@
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
-                    android:text="CH1 Range:"
+                    android:text="@string/label_ch1_range"
                     android:textSize="@dimen/text_size_normal" />
 
                 <TextView
                     android:id="@+id/ch1RangeValue"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="100%"
+                    android:text="@string/default_percentage_value"
                     android:textSize="@dimen/text_size_normal"
                     android:layout_marginEnd="@dimen/spacing_s" />
 
@@ -173,14 +173,14 @@
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
-                    android:text="CH2 Range:"
+                    android:text="@string/label_ch2_range"
                     android:textSize="@dimen/text_size_normal" />
 
                 <TextView
                     android:id="@+id/ch2RangeValue"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="100%"
+                    android:text="@string/default_percentage_value"
                     android:textSize="@dimen/text_size_normal"
                     android:layout_marginEnd="@dimen/spacing_s" />
 
@@ -203,14 +203,14 @@
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
-                    android:text="CH3 Range:"
+                    android:text="@string/label_ch3_range"
                     android:textSize="@dimen/text_size_normal" />
 
                 <TextView
                     android:id="@+id/ch3RangeValue"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="100%"
+                    android:text="@string/default_percentage_value"
                     android:textSize="@dimen/text_size_normal"
                     android:layout_marginEnd="@dimen/spacing_s" />
 
@@ -233,14 +233,14 @@
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
-                    android:text="CH4 Range:"
+                    android:text="@string/label_ch4_range"
                     android:textSize="@dimen/text_size_normal" />
 
                 <TextView
                     android:id="@+id/ch4RangeValue"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="100%"
+                    android:text="@string/default_percentage_value"
                     android:textSize="@dimen/text_size_normal"
                     android:layout_marginEnd="@dimen/spacing_s" />
 
@@ -260,7 +260,7 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="@dimen/spacing_l"
             android:layout_marginStart="@dimen/spacing_m"
-            android:text="Debug Options"
+            android:text="@string/section_debug_options"
             android:textSize="@dimen/text_size_large"
             android:textStyle="bold"
             app:layout_constraintStart_toStartOf="parent"
@@ -289,7 +289,7 @@
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
-                    android:text="Show Debug Values (Channels/Angles)"
+                    android:text="@string/toggle_show_debug_values"
                     android:textSize="@dimen/text_size_normal" />
 
             </LinearLayout>
@@ -303,7 +303,7 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="@dimen/spacing_l"
             android:layout_marginStart="@dimen/spacing_m"
-            android:text="Additional Settings"
+            android:text="@string/section_additional_settings"
             android:textSize="@dimen/text_size_large"
             android:textStyle="bold"
             app:layout_constraintStart_toStartOf="parent"
@@ -325,7 +325,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:padding="@dimen/spacing_s"
-                android:text="More settings coming soon..."
+                android:text="@string/msg_more_settings_coming"
                 android:textAlignment="center"
                 android:textColor="@android:color/darker_gray"
                 android:textSize="@dimen/text_size_normal" />
@@ -339,7 +339,7 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="@dimen/spacing_l"
             android:layout_marginStart="@dimen/spacing_m"
-            android:text="Display Mode"
+            android:text="@string/section_display_mode"
             android:textSize="@dimen/text_size_large"
             android:textStyle="bold"
             app:layout_constraintStart_toStartOf="parent"
@@ -361,7 +361,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="@dimen/spacing_s"
-                android:text="Single Hand Mode (Portrait)"
+                android:text="@string/radio_single_hand_portrait"
                 android:textSize="@dimen/text_size_normal"
                 android:padding="@dimen/spacing_s" />
 
@@ -369,7 +369,7 @@
                 android:id="@+id/dualHandRadioButton"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="Dual Hand Mode (Landscape)"
+                android:text="@string/radio_dual_hand_landscape"
                 android:textSize="@dimen/text_size_normal"
                 android:padding="@dimen/spacing_s" />
 
@@ -381,7 +381,7 @@
             android:layout_width="@dimen/button_width"
             android:layout_height="@dimen/button_height"
             android:layout_margin="@dimen/spacing_m"
-            android:text="Back"
+            android:text="@string/btn_back"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"

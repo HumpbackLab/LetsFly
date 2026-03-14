@@ -32,7 +32,7 @@
                     android:layout_height="@dimen/button_height"
                     android:layout_marginEnd="@dimen/spacing_s"
                     android:onClick="openSerial"
-                    android:text="Connect"/>
+                    android:text="@string/btn_connect"/>
 
             <!-- Use Gyro Button -->
             <Button
@@ -41,7 +41,7 @@
                     android:layout_height="@dimen/button_height"
                     android:layout_marginEnd="@dimen/spacing_s"
                     android:onClick="useGyro"
-                    android:text="Use Gyro"/>
+                    android:text="@string/btn_use_gyro"/>
 
         </LinearLayout>
 
@@ -58,7 +58,7 @@
                     android:layout_height="@dimen/button_height"
                     android:layout_marginEnd="@dimen/spacing_s"
                     android:onClick="toggleLayout"
-                    android:text="Portrait"/>
+                    android:text="@string/btn_portrait"/>
 
             <!-- Arm Switch -->
             <Switch
@@ -66,7 +66,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="@dimen/button_height"
                     android:layout_marginEnd="@dimen/spacing_s"
-                    android:text="Arm"/>
+                    android:text="@string/btn_arm"/>
 
             <!-- CH6 Three-Position Switch -->
             <Button
@@ -74,7 +74,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="@dimen/button_height"
                     android:layout_marginEnd="@dimen/spacing_s"
-                    android:text="CH6"/>
+                    android:text="@string/btn_ch6"/>
 
             <!-- CH7 Three-Position Switch -->
             <Button
@@ -82,7 +82,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="@dimen/button_height"
                     android:layout_marginEnd="@dimen/spacing_s"
-                    android:text="CH7"/>
+                    android:text="@string/btn_ch7"/>
 
             <!-- CH8 Three-Position Switch -->
             <Button
@@ -90,7 +90,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="@dimen/button_height"
                     android:layout_marginEnd="@dimen/spacing_s"
-                    android:text="CH8"/>
+                    android:text="@string/btn_ch8"/>
 
         </LinearLayout>
     </LinearLayout>
@@ -104,7 +104,7 @@
             android:keepScreenOn="true"
             android:maxLines="10"
             android:scrollbars="vertical"
-            android:text="0"
+            android:text=""
             app:layout_constraintBottom_toTopOf="@id/joysticksContainer"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
