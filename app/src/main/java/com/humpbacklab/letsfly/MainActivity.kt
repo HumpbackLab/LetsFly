@@ -143,7 +143,37 @@ class MainActivity : AppCompatActivity() {
         ch7SwitchControl = createThreePositionSwitch(R.id.switchCH7, SwitchPosition.LOW, 6)  // CH7 corresponds to index 6
         ch8SwitchControl = createThreePositionSwitch(R.id.switchCH8, SwitchPosition.LOW, 7)  // CH8 corresponds to index 7
 
+        val loadLeftJoyStick = { x:Float, y:Float -> 
+            val isGyroEnabled = sharedPreferences.getBoolean("gyro_enabled", false)
+            if(!isGyroEnabled){
+                // Apply CH4 (index 3) range adjustment
+                val ch4RangePercentage = sharedPreferences.getInt("ch4_range", 100) / 100f
+                val adjustedX = x * ch4RangePercentage
+                crsfData.data_array[3] = duty2CRSF(adjustedX / 2f + 0.5f)
 
+                // Apply CH3 (index 2) range adjustment
+                val ch3RangePercentage = sharedPreferences.getInt("ch3_range", 100) / 100f
+                crsfData.data_array[2] = duty2CRSF((y / 2f + 0.5f) * ch3RangePercentage) 
+                // special for throttle, range adjustment is applied after centering to ensure it scales correctly
+                // from the minimum value  
+            }
+        }
+
+        val loadRightJoyStick = { x:Float, y:Float ->
+            val isGyroEnabled = sharedPreferences.getBoolean("gyro_enabled", false)
+            if (!isGyroEnabled){
+                // Apply CH1 (index 0) range adjustment
+                val ch1RangePercentage = sharedPreferences.getInt("ch1_range", 100) / 100f
+                val adjustedX = x * ch1RangePercentage
+                crsfData.data_array[0] = duty2CRSF(adjustedX / 2 + 0.5f)
+
+                // Apply CH2 (index 1) range adjustment
+                val ch2RangePercentage = sharedPreferences.getInt("ch2_range", 100) / 100f
+                val adjustedY = y * ch2RangePercentage
+                crsfData.data_array[1] = duty2CRSF(adjustedY / 2 + 0.5f)
+            }
+
+        }
         // ch1 roll
         // ch2 pitch
         // ch3 throttle
@@ -151,19 +181,7 @@ class MainActivity : AppCompatActivity() {
         leftJoyStick.setOnJoystickMoveListener(
             object : OnJoystickMoveListener {
                 override fun onJoystickValueChanged(x: Float, y: Float) {
-                    val isGyroEnabled = sharedPreferences.getBoolean("gyro_enabled", false)
-                    if (!isGyroEnabled) {
-                        // Apply CH4 (index 3) range adjustment
-                        val ch4RangePercentage = sharedPreferences.getInt("ch4_range", 100) / 100f
-                        val adjustedX = x * ch4RangePercentage
-                        crsfData.data_array[3] = duty2CRSF(adjustedX / 2f + 0.5f)
-
-                        // Apply CH3 (index 2) range adjustment
-                        val ch3RangePercentage = sharedPreferences.getInt("ch3_range", 100) / 100f
-                        crsfData.data_array[2] = duty2CRSF((y / 2f + 0.5f) * ch3RangePercentage) 
-                        // special for throttle, range adjustment is applied after centering to ensure it scales correctly
-                        // from the minimum value
-                    }
+                    loadLeftJoyStick(x,y)
                 }
             }, 10
         )
@@ -171,18 +189,7 @@ class MainActivity : AppCompatActivity() {
         rightJoyStick.setOnJoystickMoveListener(
             object : OnJoystickMoveListener {
                 override fun onJoystickValueChanged(x: Float, y: Float) {
-                    val isGyroEnabled = sharedPreferences.getBoolean("gyro_enabled", false)
-                    if (!isGyroEnabled) {
-                        // Apply CH1 (index 0) range adjustment
-                        val ch1RangePercentage = sharedPreferences.getInt("ch1_range", 100) / 100f
-                        val adjustedX = x * ch1RangePercentage
-                        crsfData.data_array[0] = duty2CRSF(adjustedX / 2 + 0.5f)
-
-                        // Apply CH2 (index 1) range adjustment
-                        val ch2RangePercentage = sharedPreferences.getInt("ch2_range", 100) / 100f
-                        val adjustedY = y * ch2RangePercentage
-                        crsfData.data_array[1] = duty2CRSF(adjustedY / 2 + 0.5f)
-                    }
+                    loadRightJoyStick(x,y)
                 }
             }, 10
         )
@@ -211,6 +218,14 @@ class MainActivity : AppCompatActivity() {
 
         // Initialize joystick states based on saved preferences
         initializeJoystickStates()
+
+        // Set initial joystick positions after view layout is complete
+        leftJoyStick.post {
+            leftJoyStick.setXY(0f, -1.0f)
+            rightJoyStick.setXY(0f, 0f)
+            loadLeftJoyStick(leftJoyStick.getOutX(), leftJoyStick.getOutY())
+            loadRightJoyStick(rightJoyStick.getOutX(), rightJoyStick.getOutY())
+        }
 
         // Set initial orientation based on settings
         setInitialOrientation()

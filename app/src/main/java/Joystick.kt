@@ -178,8 +178,8 @@ class Joystick(context: Context, attrs: AttributeSet) : View(context, attrs){
         }
     }
 
-    private fun getOutX()=(xPosition - centerX) / joystickRadius
-    private fun getOutY()=-(yPosition - centerY) / (if (rectangularBoundaryEnabled) (joystickRadius * aspectRatio) else joystickRadius).toFloat()
+    public fun getOutX()=(xPosition - centerX) / joystickRadius
+    public fun getOutY()=-(yPosition - centerY) / (if (rectangularBoundaryEnabled) (joystickRadius * aspectRatio) else joystickRadius).toFloat()
 
     public fun setXY(targetX:Float,targetY:Float){
         xPosition=(joystickRadius*targetX+centerX).toInt()
