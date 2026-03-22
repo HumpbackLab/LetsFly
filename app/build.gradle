@@ -3,6 +3,13 @@ plugins {
     id 'kotlin-android'
 }
 
+// Load keystore properties from local.properties
+def keystoreProperties = new Properties()
+def keystorePropertiesFile = rootProject.file('local.properties')
+if (keystorePropertiesFile.exists()) {
+    keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
+}
+
 android {
     compileSdk 33
 
@@ -16,8 +23,18 @@ android {
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
 
+    signingConfigs {
+        release {
+            storeFile file(keystoreProperties['STORE_FILE'])
+            storePassword keystoreProperties['STORE_PASSWORD']
+            keyAlias keystoreProperties['KEY_ALIAS']
+            keyPassword keystoreProperties['KEY_PASSWORD']
+        }
+    }
+
     buildTypes {
         release {
+            signingConfig signingConfigs.release
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
