@@ -40,6 +40,7 @@
     <string name="msg_fail_open_uart">Fail to Open Uart Device!</string>
     <string name="msg_config_success">Configuration successful</string>
     <string name="msg_uart_disconnected">Uart device disconnected!</string>
+    <string name="msg_please_arm_first">Please arm first!</string>
 
     <!-- Orientation Modes -->
     <string name="orientation_single_hand">single_hand</string>

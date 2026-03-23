@@ -40,6 +40,7 @@
     <string name="msg_fail_open_uart">打开串口设备失败！</string>
     <string name="msg_config_success">配置成功</string>
     <string name="msg_uart_disconnected">串口设备已断开连接！</string>
+    <string name="msg_please_arm_first">请先解锁！</string>
 
     <!-- Orientation Modes -->
     <string name="orientation_single_hand">single_hand</string>

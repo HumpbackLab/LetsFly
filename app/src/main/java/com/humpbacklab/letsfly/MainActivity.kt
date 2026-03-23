@@ -197,7 +197,16 @@ class MainActivity : AppCompatActivity() {
         // Add listeners to switches for visual feedback
         armSwitch.setOnCheckedChangeListener { _, isChecked ->
             updateSwitchVisualFeedback(armSwitch, isChecked)
+            // Enable/disable left joystick based on arm switch state
+            leftJoyStick.enable = isChecked
+            // When disarmed, reset throttle to minimum
+            if (!isChecked) {
+                leftJoyStick.setXY(0f, -1.0f)
+                loadLeftJoyStick(leftJoyStick.getOutX(), leftJoyStick.getOutY())
+            }
         }
+
+
 
         // Initialize visual feedback for switches
         updateSwitchVisualFeedback(armSwitch, armSwitch.isChecked)
@@ -226,6 +235,13 @@ class MainActivity : AppCompatActivity() {
             loadLeftJoyStick(leftJoyStick.getOutX(), leftJoyStick.getOutY())
             loadRightJoyStick(rightJoyStick.getOutX(), rightJoyStick.getOutY())
         }
+
+        // Add listener for when left joystick is touched while disabled
+        leftJoyStick.addOnDisabledTouchListener(object : OnJoystickDisabledTouch {
+            override fun onDisabledTouch() {
+                debugInfo(getString(R.string.msg_please_arm_first))
+            }
+        })
 
         // Set initial orientation based on settings
         setInitialOrientation()
@@ -256,7 +272,7 @@ class MainActivity : AppCompatActivity() {
             leftJoyStick.enable = false
             rightJoyStick.enable = false
         } else {
-            leftJoyStick.enable = true
+            leftJoyStick.enable = armSwitch.isChecked
             rightJoyStick.enable = true
         }
     }

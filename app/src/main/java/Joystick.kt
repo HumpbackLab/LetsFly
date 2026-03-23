@@ -20,6 +20,10 @@ interface OnJoystickMoveListener {
     fun onJoystickValueChanged(x:Float, y:Float)
 }
 
+interface OnJoystickDisabledTouch {
+    fun onDisabledTouch()
+}
+
 class Joystick(context: Context, attrs: AttributeSet) : View(context, attrs){
     companion object {
         // Default repeat interval for joystick updates in milliseconds
@@ -33,6 +37,7 @@ class Joystick(context: Context, attrs: AttributeSet) : View(context, attrs){
     private var xPosition:Int = 0
     private var yPosition:Int = 0
     private var listener:OnJoystickMoveListener? = null
+    private var disabledTouchListeners: MutableList<OnJoystickDisabledTouch> = mutableListOf()
     private var repeatInterval:Long = DEFAULT_REPEAT_INTERVAL
     private val handler = Handler(Looper.getMainLooper())
     private var runnable: Runnable? = null
@@ -96,6 +101,10 @@ class Joystick(context: Context, attrs: AttributeSet) : View(context, attrs){
     fun setOnJoystickMoveListener(listener:OnJoystickMoveListener , interval:Long){
         this.listener=listener
         repeatInterval=interval
+    }
+
+    fun addOnDisabledTouchListener(listener: OnJoystickDisabledTouch) {
+        disabledTouchListeners.add(listener)
     }
 
     private val mainCirclePaint = Paint(ANTI_ALIAS_FLAG).apply {
@@ -206,6 +215,10 @@ class Joystick(context: Context, attrs: AttributeSet) : View(context, attrs){
     override fun onTouchEvent(event: MotionEvent): Boolean {
 
         if(!enable){
+            // Notify listeners that joystick is disabled and was touched
+            if (event.action == MotionEvent.ACTION_DOWN) {
+                disabledTouchListeners.forEach { it.onDisabledTouch() }
+            }
             return true
         }
 
