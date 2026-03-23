@@ -46,6 +46,9 @@ class MainActivity : AppCompatActivity() {
         const val CRSF_PACKET_TYPE_RC_CHANNELS = 0x16
         const val CRSF_PACKET_ADDRESS = 0xC8
         const val CRSF_PACKET_LENGTH = 0x18
+
+        // Default channel range percentage
+        const val DEFAULT_CH4_RANGE = 50
     }
     class MyListener(val callback: (listen: MyListener) -> Unit) : SensorEventListener {
         public var roll: Float = 0.0f
@@ -147,7 +150,7 @@ class MainActivity : AppCompatActivity() {
             val isGyroEnabled = sharedPreferences.getBoolean("gyro_enabled", false)
             if(!isGyroEnabled){
                 // Apply CH4 (index 3) range adjustment
-                val ch4RangePercentage = sharedPreferences.getInt("ch4_range", 100) / 100f
+                val ch4RangePercentage = sharedPreferences.getInt("ch4_range", DEFAULT_CH4_RANGE) / 100f
                 val adjustedX = x * ch4RangePercentage
                 crsfData.data_array[3] = duty2CRSF(adjustedX / 2f + 0.5f)
 
@@ -529,7 +532,7 @@ class MainActivity : AppCompatActivity() {
             crsfData.data_array[2] = duty2CRSF(thrust)
 
             // Apply CH4 range adjustment (for yaw)
-            val ch4RangePercentage = sharedPreferences.getInt("ch4_range", 100) / 100f
+            val ch4RangePercentage = sharedPreferences.getInt("ch4_range", DEFAULT_CH4_RANGE) / 100f
             val adjustedYawValue = (tempYaw/80) * ch4RangePercentage
             crsfData.data_array[3] = duty2CRSF(adjustedYawValue)
 

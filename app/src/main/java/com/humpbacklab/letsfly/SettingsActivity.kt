@@ -45,6 +45,7 @@ class SettingsActivity : AppCompatActivity() {
         private const val KEY_CH2_RANGE = "ch2_range"
         private const val KEY_CH3_RANGE = "ch3_range"
         private const val KEY_CH4_RANGE = "ch4_range"
+        private const val DEFAULT_CH4_RANGE = 50
         private const val KEY_ORIENTATION_MODE = "orientation_mode"
         private const val KEY_SHOW_VALUES = "show_values"
         private const val ORIENTATION_SINGLE_HAND = "single_hand"  // portrait
@@ -194,8 +195,8 @@ class SettingsActivity : AppCompatActivity() {
 
         // CH4 Range Slider
         ch4RangeSlider.max = 80  // From 20 to 100 (80 steps)
-        ch4RangeSlider.progress = sharedPreferences.getInt(KEY_CH4_RANGE, defaultRange) - 20
-        ch4RangeValue.text = "${sharedPreferences.getInt(KEY_CH4_RANGE, defaultRange)}%"
+        ch4RangeSlider.progress = sharedPreferences.getInt(KEY_CH4_RANGE, DEFAULT_CH4_RANGE) - 20
+        ch4RangeValue.text = "${sharedPreferences.getInt(KEY_CH4_RANGE, DEFAULT_CH4_RANGE)}%"
 
         ch4RangeSlider.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
             override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
