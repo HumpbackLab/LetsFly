@@ -4,6 +4,8 @@ import android.annotation.SuppressLint
 import android.app.AlertDialog
 import android.content.Context
 import android.content.Intent
+import android.content.res.Configuration
+import android.graphics.Bitmap
 import android.graphics.Color
 import android.graphics.PorterDuff
 import android.hardware.Sensor
@@ -16,6 +18,7 @@ import android.os.Bundle
 import android.view.KeyEvent
 import android.view.View
 import android.widget.Button
+import android.widget.ImageView
 import android.widget.Switch
 import android.widget.TableLayout
 import android.widget.TableRow
@@ -26,6 +29,8 @@ import androidx.core.graphics.ColorUtils
 import androidx.core.view.get
 import com.hehongdan.ch34xuartdriver.CH34xUARTDriver
 import java.lang.Thread.sleep
+import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.atomic.AtomicReference
 import kotlin.math.asin
 import kotlin.math.atan2
 
@@ -49,6 +54,10 @@ class MainActivity : AppCompatActivity() {
 
         // Default channel range percentage
         const val DEFAULT_CH4_RANGE = 50
+
+        const val ORIENTATION_SINGLE_HAND = "single_hand"
+        const val ORIENTATION_DUAL_HAND = "dual_hand"
+        const val ORIENTATION_DUAL_HAND_AIRPLANE = "dual_hand_airplane"
     }
     class MyListener(val callback: (listen: MyListener) -> Unit) : SensorEventListener {
         public var roll: Float = 0.0f
@@ -96,6 +105,32 @@ class MainActivity : AppCompatActivity() {
 
     private lateinit var sharedPreferences: android.content.SharedPreferences
 
+    private lateinit var videoView: ImageView
+    private lateinit var apfpvVideoReceiver: ApfpvVideoReceiver
+    private val acceptingVideoFrames = AtomicBoolean(false)
+    private val pendingVideoBitmap = AtomicReference<Bitmap?>()
+    private val videoFramePostScheduled = AtomicBoolean(false)
+    private val displayLatestVideoFrame = object : Runnable {
+        override fun run() {
+            val bitmap = pendingVideoBitmap.getAndSet(null)
+            if (bitmap != null) {
+                if (acceptingVideoFrames.get()) {
+                    videoView.setImageBitmap(bitmap)
+                } else {
+                    bitmap.recycle()
+                }
+            }
+
+            videoFramePostScheduled.set(false)
+            if (acceptingVideoFrames.get() &&
+                pendingVideoBitmap.get() != null &&
+                videoFramePostScheduled.compareAndSet(false, true)
+            ) {
+                videoView.post(this)
+            }
+        }
+    }
+
     private var thrust:Float=0f
 
     private lateinit var leftJoyStick: Joystick
@@ -124,7 +159,15 @@ class MainActivity : AppCompatActivity() {
     fun duty2CRSF(duty:Float)=(duty * DUTY_CYCLE_MULTIPLIER + DUTY_CYCLE_OFFSET).toInt()
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        if (resources.configuration.orientation == Configuration.ORIENTATION_LANDSCAPE) {
+            supportActionBar?.hide()
+        } else {
+            supportActionBar?.show()
+        }
         setContentView(R.layout.activity_main)
+
+        videoView = findViewById(R.id.apfpvVideoView)
+        apfpvVideoReceiver = ApfpvVideoReceiver(::queueLatestVideoFrame)
 
         // Initialize shared preferences
         sharedPreferences = getSharedPreferences("rc_controller_prefs", Context.MODE_PRIVATE)
@@ -149,10 +192,12 @@ class MainActivity : AppCompatActivity() {
         val loadLeftJoyStick = { x:Float, y:Float -> 
             val isGyroEnabled = sharedPreferences.getBoolean("gyro_enabled", false)
             if(!isGyroEnabled){
-                // Apply CH4 (index 3) range adjustment
-                val ch4RangePercentage = sharedPreferences.getInt("ch4_range", DEFAULT_CH4_RANGE) / 100f
-                val adjustedX = x * ch4RangePercentage
-                crsfData.data_array[3] = duty2CRSF(adjustedX / 2f + 0.5f)
+                if (!isDualHandAirplaneMode()) {
+                    // Apply CH4 (index 3) range adjustment
+                    val ch4RangePercentage = sharedPreferences.getInt("ch4_range", DEFAULT_CH4_RANGE) / 100f
+                    val adjustedX = x * ch4RangePercentage
+                    crsfData.data_array[3] = duty2CRSF(adjustedX / 2f + 0.5f)
+                }
 
                 // Apply CH3 (index 2) range adjustment
                 val ch3RangePercentage = sharedPreferences.getInt("ch3_range", 100) / 100f
@@ -165,10 +210,18 @@ class MainActivity : AppCompatActivity() {
         val loadRightJoyStick = { x:Float, y:Float ->
             val isGyroEnabled = sharedPreferences.getBoolean("gyro_enabled", false)
             if (!isGyroEnabled){
-                // Apply CH1 (index 0) range adjustment
-                val ch1RangePercentage = sharedPreferences.getInt("ch1_range", 100) / 100f
-                val adjustedX = x * ch1RangePercentage
-                crsfData.data_array[0] = duty2CRSF(adjustedX / 2 + 0.5f)
+                if (isDualHandAirplaneMode()) {
+                    // Paper-airplane mode has no roll input. Right X controls yaw instead.
+                    crsfData.data_array[0] = duty2CRSF(0.5f)
+                    val ch4RangePercentage = sharedPreferences.getInt("ch4_range", DEFAULT_CH4_RANGE) / 100f
+                    val adjustedX = x * ch4RangePercentage
+                    crsfData.data_array[3] = duty2CRSF(adjustedX / 2f + 0.5f)
+                } else {
+                    // Apply CH1 (index 0) range adjustment
+                    val ch1RangePercentage = sharedPreferences.getInt("ch1_range", 100) / 100f
+                    val adjustedX = x * ch1RangePercentage
+                    crsfData.data_array[0] = duty2CRSF(adjustedX / 2 + 0.5f)
+                }
 
                 // Apply CH2 (index 1) range adjustment
                 val ch2RangePercentage = sharedPreferences.getInt("ch2_range", 100) / 100f
@@ -252,9 +305,9 @@ class MainActivity : AppCompatActivity() {
 
     private fun setInitialOrientation() {
         // Check shared preferences for the orientation mode
-        val orientationMode = sharedPreferences.getString("orientation_mode", "single_hand")
+        val orientationMode = sharedPreferences.getString("orientation_mode", ORIENTATION_SINGLE_HAND)
         when (orientationMode) {
-            "dual_hand" -> {
+            ORIENTATION_DUAL_HAND, ORIENTATION_DUAL_HAND_AIRPLANE -> {
                 requestedOrientation = android.content.pm.ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
             }
             else -> { // Default to single hand (portrait)
@@ -265,8 +318,33 @@ class MainActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
+        applyControlModeDefaults()
+        acceptingVideoFrames.set(true)
+        apfpvVideoReceiver.start()
         // Update orientation when activity resumes (e.g., when returning from settings)
         setInitialOrientation()
+    }
+
+    override fun onPause() {
+        acceptingVideoFrames.set(false)
+        apfpvVideoReceiver.stop()
+        videoView.removeCallbacks(displayLatestVideoFrame)
+        videoFramePostScheduled.set(false)
+        pendingVideoBitmap.getAndSet(null)?.recycle()
+        videoView.setImageDrawable(null)
+        super.onPause()
+    }
+
+    private fun queueLatestVideoFrame(bitmap: Bitmap) {
+        if (!acceptingVideoFrames.get()) {
+            bitmap.recycle()
+            return
+        }
+
+        pendingVideoBitmap.getAndSet(bitmap)?.recycle()
+        if (videoFramePostScheduled.compareAndSet(false, true)) {
+            videoView.post(displayLatestVideoFrame)
+        }
     }
 
     private fun initializeJoystickStates() {
@@ -277,6 +355,18 @@ class MainActivity : AppCompatActivity() {
         } else {
             leftJoyStick.enable = armSwitch.isChecked
             rightJoyStick.enable = true
+        }
+    }
+
+    private fun isDualHandAirplaneMode(): Boolean =
+        sharedPreferences.getString("orientation_mode", ORIENTATION_SINGLE_HAND) == ORIENTATION_DUAL_HAND_AIRPLANE
+
+    private fun applyControlModeDefaults() {
+        val airplaneMode = isDualHandAirplaneMode()
+        leftJoyStick.setHorizontalLocked(airplaneMode)
+        if (airplaneMode && !sharedPreferences.getBoolean("gyro_enabled", false)) {
+            crsfData.data_array[0] = duty2CRSF(0.5f)
+            crsfData.data_array[3] = duty2CRSF(0.5f)
         }
     }
 
@@ -309,7 +399,7 @@ class MainActivity : AppCompatActivity() {
 
             // Save the new orientation mode to shared preferences
             with(sharedPreferences.edit()) {
-                putString("orientation_mode", "dual_hand")
+                putString("orientation_mode", ORIENTATION_DUAL_HAND)
                 apply()
             }
         } else {
@@ -318,7 +408,7 @@ class MainActivity : AppCompatActivity() {
 
             // Save the new orientation mode to shared preferences
             with(sharedPreferences.edit()) {
-                putString("orientation_mode", "single_hand")
+                putString("orientation_mode", ORIENTATION_SINGLE_HAND)
                 apply()
             }
         }

@@ -369,7 +369,16 @@
                 android:id="@+id/dualHandRadioButton"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:layout_marginBottom="@dimen/spacing_s"
                 android:text="@string/radio_dual_hand_landscape"
+                android:textSize="@dimen/text_size_normal"
+                android:padding="@dimen/spacing_s" />
+
+            <RadioButton
+                android:id="@+id/dualHandAirplaneRadioButton"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/radio_dual_hand_airplane"
                 android:textSize="@dimen/text_size_normal"
                 android:padding="@dimen/spacing_s" />
 

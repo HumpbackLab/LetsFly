@@ -33,6 +33,7 @@ class SettingsActivity : AppCompatActivity() {
     private lateinit var orientationRadioGroup: RadioGroup
     private lateinit var singleHandRadioButton: RadioButton
     private lateinit var dualHandRadioButton: RadioButton
+    private lateinit var dualHandAirplaneRadioButton: RadioButton
     private lateinit var backButton: Button
 
     private lateinit var sharedPreferences: SharedPreferences
@@ -50,6 +51,7 @@ class SettingsActivity : AppCompatActivity() {
         private const val KEY_SHOW_VALUES = "show_values"
         private const val ORIENTATION_SINGLE_HAND = "single_hand"  // portrait
         private const val ORIENTATION_DUAL_HAND = "dual_hand"     // landscape
+        private const val ORIENTATION_DUAL_HAND_AIRPLANE = "dual_hand_airplane"
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -83,6 +85,7 @@ class SettingsActivity : AppCompatActivity() {
         orientationRadioGroup = findViewById(R.id.orientationRadioGroup)
         singleHandRadioButton = findViewById(R.id.singleHandRadioButton)
         dualHandRadioButton = findViewById(R.id.dualHandRadioButton)
+        dualHandAirplaneRadioButton = findViewById(R.id.dualHandAirplaneRadioButton)
         backButton = findViewById(R.id.backButton)
     }
 
@@ -236,6 +239,7 @@ class SettingsActivity : AppCompatActivity() {
 
         when (selectedOrientation) {
             ORIENTATION_DUAL_HAND -> dualHandRadioButton.isChecked = true
+            ORIENTATION_DUAL_HAND_AIRPLANE -> dualHandAirplaneRadioButton.isChecked = true
             else -> singleHandRadioButton.isChecked = true  // Default to single hand
         }
 
@@ -244,6 +248,10 @@ class SettingsActivity : AppCompatActivity() {
                 R.id.dualHandRadioButton -> {
                     requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
                     ORIENTATION_DUAL_HAND
+                }
+                R.id.dualHandAirplaneRadioButton -> {
+                    requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
+                    ORIENTATION_DUAL_HAND_AIRPLANE
                 }
                 else -> { // Default to single hand
                     requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
@@ -262,11 +270,15 @@ class SettingsActivity : AppCompatActivity() {
     private fun setupBackButton() {
         backButton.setOnClickListener {
             // Before closing the settings activity, ensure the main activity's orientation is updated
-            val orientationMode = if (dualHandRadioButton.isChecked) getString(R.string.orientation_dual_hand) else getString(R.string.orientation_single_hand)
+            val orientationMode = when (orientationRadioGroup.checkedRadioButtonId) {
+                R.id.dualHandRadioButton -> ORIENTATION_DUAL_HAND
+                R.id.dualHandAirplaneRadioButton -> ORIENTATION_DUAL_HAND_AIRPLANE
+                else -> ORIENTATION_SINGLE_HAND
+            }
 
             // Save the setting to shared preferences
             with(sharedPreferences.edit()) {
-                putString("orientation_mode", orientationMode)
+                putString(KEY_ORIENTATION_MODE, orientationMode)
                 apply()
             }
 

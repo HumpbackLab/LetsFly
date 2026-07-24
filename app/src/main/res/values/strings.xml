@@ -11,6 +11,7 @@
     <string name="btn_ch7">CH7</string>
     <string name="btn_ch8">CH8</string>
     <string name="btn_settings">Settings</string>
+    <string name="apfpv_video_description">APFPV camera video</string>
 
     <!-- Settings Activity Strings -->
     <string name="title_settings">Settings</string>
@@ -33,6 +34,7 @@
     <string name="section_display_mode">Display Mode</string>
     <string name="radio_single_hand_portrait">Single Hand Mode (Portrait)</string>
     <string name="radio_dual_hand_landscape">Dual Hand Mode (Landscape)</string>
+    <string name="radio_dual_hand_airplane">Dual Hand Airplane Mode (Landscape)</string>
     <string name="btn_back">Back</string>
 
     <!-- Dialog Messages -->
@@ -45,4 +47,5 @@
     <!-- Orientation Modes -->
     <string name="orientation_single_hand">single_hand</string>
     <string name="orientation_dual_hand">dual_hand</string>
+    <string name="orientation_dual_hand_airplane">dual_hand_airplane</string>
 </resources>

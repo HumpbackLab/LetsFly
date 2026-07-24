@@ -11,6 +11,7 @@
     <string name="btn_ch7">通道7</string>
     <string name="btn_ch8">通道8</string>
     <string name="btn_settings">设置</string>
+    <string name="apfpv_video_description">APFPV 相机视频</string>
 
     <!-- Settings Activity Strings -->
     <string name="title_settings">设置</string>
@@ -33,6 +34,7 @@
     <string name="section_display_mode">显示模式</string>
     <string name="radio_single_hand_portrait">单手模式（竖屏）</string>
     <string name="radio_dual_hand_landscape">双手模式（横屏）</string>
+    <string name="radio_dual_hand_airplane">双手纸飞机模式（横屏）</string>
     <string name="btn_back">返回</string>
 
     <!-- Dialog Messages -->
@@ -45,4 +47,5 @@
     <!-- Orientation Modes -->
     <string name="orientation_single_hand">single_hand</string>
     <string name="orientation_dual_hand">dual_hand</string>
+    <string name="orientation_dual_hand_airplane">dual_hand_airplane</string>
 </resources>

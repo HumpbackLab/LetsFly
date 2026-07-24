@@ -60,6 +60,7 @@ class Joystick(context: Context, attrs: AttributeSet) : View(context, attrs){
 
     // Flag to control extended Y-axis range
     private var extendedRangeY: Boolean = false
+    private var horizontalLocked: Boolean = false
 
     var enable:Boolean=true
 
@@ -96,6 +97,14 @@ class Joystick(context: Context, attrs: AttributeSet) : View(context, attrs){
     // Method to enable/disable extended Y-axis range
     fun setExtendedRangeY(extended: Boolean) {
         extendedRangeY = extended
+    }
+
+    fun setHorizontalLocked(locked: Boolean) {
+        horizontalLocked = locked
+        if (locked && width > 0) {
+            xPosition = defaultX
+            invalidate()
+        }
     }
 
     fun setOnJoystickMoveListener(listener:OnJoystickMoveListener , interval:Long){
@@ -191,7 +200,7 @@ class Joystick(context: Context, attrs: AttributeSet) : View(context, attrs){
     public fun getOutY()=-(yPosition - centerY) / (if (rectangularBoundaryEnabled) (joystickRadius * aspectRatio) else joystickRadius).toFloat()
 
     public fun setXY(targetX:Float,targetY:Float){
-        xPosition=(joystickRadius*targetX+centerX).toInt()
+        xPosition = if (horizontalLocked) defaultX else (joystickRadius * targetX + centerX).toInt()
         yPosition=(centerY- if (rectangularBoundaryEnabled) (joystickRadius * aspectRatio * targetY) else (joystickRadius * targetY)).toInt()
         invalidate()
     }
@@ -217,7 +226,9 @@ class Joystick(context: Context, attrs: AttributeSet) : View(context, attrs){
         if(!enable){
             // Notify listeners that joystick is disabled and was touched
             if (event.action == MotionEvent.ACTION_DOWN) {
-                disabledTouchListeners.forEach { it.onDisabledTouch() }
+                for (listener in disabledTouchListeners) {
+                    listener.onDisabledTouch()
+                }
             }
             return true
         }
@@ -279,6 +290,10 @@ class Joystick(context: Context, attrs: AttributeSet) : View(context, attrs){
             } else if(yPosition < centerY - joystickRadius) {
                 yPosition = (centerY - joystickRadius).toInt()
             }
+        }
+
+        if (horizontalLocked) {
+            xPosition = defaultX
         }
 
         invalidate()
