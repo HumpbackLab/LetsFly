@@ -9,10 +9,10 @@
     <color name="white">#FFFFFFFF</color>
 
     <!-- Custom colors for RC controller -->
-    <color name="joystick_background">#E0E0E0</color>
-    <color name="joystick_inner_circle">#BDBDBD</color>
-    <color name="joystick_button">#2196F3</color>
-    <color name="joystick_button_pressed">#1976D2</color>
+    <color name="joystick_background">#26FFFFFF</color>
+    <color name="joystick_inner_circle">#66FFFFFF</color>
+    <color name="joystick_button">#992196F3</color>
+    <color name="joystick_button_pressed">#991976D2</color>
     <color name="switch_arm_on">#4CAF50</color>
     <color name="switch_arm_off">#F44336</color>
     <color name="switch_ch6_on">#FF9800</color>
