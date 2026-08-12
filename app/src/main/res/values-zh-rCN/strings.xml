@@ -31,6 +31,13 @@
     <string name="toggle_show_debug_values">显示调试值（通道/角度）</string>
     <string name="section_additional_settings">附加设置</string>
     <string name="msg_more_settings_coming">更多设置即将到来...</string>
+    <string name="btn_calibrate_physical_joysticks">校准物理摇杆</string>
+    <string name="btn_reset_physical_joysticks">恢复默认摇杆</string>
+    <string name="physical_joystick_reset_complete">已恢复默认摇杆布局。</string>
+    <string name="physical_calibration_left_prompt">第 1/2 步：将左手摇杆沿 X/Y 两个方向摇到全部极限位置，然后松手。\n按返回键可取消。</string>
+    <string name="physical_calibration_right_prompt">第 2/2 步：将右手摇杆沿 X/Y 两个方向摇到全部极限位置，然后松手。\n按返回键可取消。</string>
+    <string name="physical_calibration_invalid">检测到的行程太小。请将当前摇杆向各方向摇到极限，然后松手。</string>
+    <string name="physical_calibration_complete">物理摇杆校准已保存。</string>
     <string name="section_display_mode">显示模式</string>
     <string name="radio_single_hand_portrait">单手模式（竖屏）</string>
     <string name="radio_dual_hand_landscape">双手模式（横屏）</string>

@@ -17,6 +17,8 @@ import android.os.Build
 import android.os.Bundle
 import android.view.KeyEvent
 import android.view.View
+import android.view.ViewGroup
+import android.widget.FrameLayout
 import android.widget.Button
 import android.widget.ImageView
 import android.widget.Switch
@@ -33,6 +35,7 @@ import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicReference
 import kotlin.math.asin
 import kotlin.math.atan2
+import kotlin.math.ceil
 
 class MainActivity : AppCompatActivity() {
     companion object {
@@ -58,6 +61,12 @@ class MainActivity : AppCompatActivity() {
         const val ORIENTATION_SINGLE_HAND = "single_hand"
         const val ORIENTATION_DUAL_HAND = "dual_hand"
         const val ORIENTATION_DUAL_HAND_AIRPLANE = "dual_hand_airplane"
+
+        const val KEY_PHYSICAL_CALIBRATION_REQUESTED = "physical_joystick_calibration_requested"
+        private const val KEY_PHYSICAL_CALIBRATED = "physical_joystick_calibrated"
+        private const val PHYSICAL_LEFT = "physical_left"
+        private const val PHYSICAL_RIGHT = "physical_right"
+        private const val PHYSICAL_JOYSTICK_VISUAL_SCALE = 1.5f
     }
     class MyListener(val callback: (listen: MyListener) -> Unit) : SensorEventListener {
         public var roll: Float = 0.0f
@@ -135,6 +144,11 @@ class MainActivity : AppCompatActivity() {
 
     private lateinit var leftJoyStick: Joystick
     private lateinit var rightJoyStick: Joystick
+    private var originalLeftJoystickWidth: Int = 0
+    private var originalLeftJoystickHeight: Int = 0
+    private var originalRightJoystickWidth: Int = 0
+    private var originalRightJoystickHeight: Int = 0
+    private var calibrationView: PhysicalJoystickCalibrationView? = null
 
     private lateinit var armSwitch: Switch
 
@@ -182,6 +196,10 @@ class MainActivity : AppCompatActivity() {
         //bytes=getTestByteArray("C8 18 16 E0 03 1F 2B C0 F7 8B 5F FC E2 17 E5 2B 5F F9 CA 07 00 00 44 3C E2 B8")
         leftJoyStick = findViewById<Joystick>(R.id.leftJoystick)
         rightJoyStick = findViewById<Joystick>(R.id.rightJoystick)
+        originalLeftJoystickWidth = leftJoyStick.layoutParams.width
+        originalLeftJoystickHeight = leftJoyStick.layoutParams.height
+        originalRightJoystickWidth = rightJoyStick.layoutParams.width
+        originalRightJoystickHeight = rightJoyStick.layoutParams.height
         armSwitch = findViewById(R.id.switchArm)
 
         // Initialize three-position switches with a helper function
@@ -286,6 +304,7 @@ class MainActivity : AppCompatActivity() {
 
         // Set initial joystick positions after view layout is complete
         leftJoyStick.post {
+            applySavedPhysicalJoystickLayout()
             leftJoyStick.setXY(0f, -1.0f)
             rightJoyStick.setXY(0f, 0f)
             loadLeftJoyStick(leftJoyStick.getOutX(), leftJoyStick.getOutY())
@@ -319,6 +338,15 @@ class MainActivity : AppCompatActivity() {
     override fun onResume() {
         super.onResume()
         applyControlModeDefaults()
+        leftJoyStick.post {
+            applySavedPhysicalJoystickLayout()
+            if (resources.configuration.orientation == Configuration.ORIENTATION_LANDSCAPE &&
+                sharedPreferences.getBoolean(KEY_PHYSICAL_CALIBRATION_REQUESTED, false)
+            ) {
+                sharedPreferences.edit().putBoolean(KEY_PHYSICAL_CALIBRATION_REQUESTED, false).apply()
+                startPhysicalJoystickCalibration()
+            }
+        }
         acceptingVideoFrames.set(true)
         apfpvVideoReceiver.start()
         // Update orientation when activity resumes (e.g., when returning from settings)
@@ -356,6 +384,127 @@ class MainActivity : AppCompatActivity() {
             leftJoyStick.enable = armSwitch.isChecked
             rightJoyStick.enable = true
         }
+    }
+
+    private fun startPhysicalJoystickCalibration() {
+        if (resources.configuration.orientation != Configuration.ORIENTATION_LANDSCAPE || calibrationView != null) {
+            return
+        }
+
+        // Calibration must never move control channels or leave the aircraft armed.
+        armSwitch.isChecked = false
+        sharedPreferences.edit().putBoolean("gyro_enabled", false).apply()
+        leftJoyStick.enable = false
+        rightJoyStick.enable = false
+
+        val content = findViewById<FrameLayout>(android.R.id.content)
+        val overlay = PhysicalJoystickCalibrationView(
+            this,
+            promptForSide = { left ->
+                getString(if (left) R.string.physical_calibration_left_prompt else R.string.physical_calibration_right_prompt)
+            },
+            invalidPrompt = { getString(R.string.physical_calibration_invalid) },
+            onComplete = { left, right -> finishPhysicalJoystickCalibration(content, left, right) }
+        )
+        calibrationView = overlay
+        content.addView(
+            overlay,
+            ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT)
+        )
+    }
+
+    private fun finishPhysicalJoystickCalibration(
+        content: FrameLayout,
+        left: JoystickTravelBounds,
+        right: JoystickTravelBounds
+    ) {
+        savePhysicalBounds(PHYSICAL_LEFT, left, content.width, content.height)
+        savePhysicalBounds(PHYSICAL_RIGHT, right, content.width, content.height)
+        sharedPreferences.edit().putBoolean(KEY_PHYSICAL_CALIBRATED, true).apply()
+        calibrationView?.let(content::removeView)
+        calibrationView = null
+        initializeJoystickStates()
+        applySavedPhysicalJoystickLayout()
+        debugInfo(getString(R.string.physical_calibration_complete))
+    }
+
+    private fun savePhysicalBounds(prefix: String, bounds: JoystickTravelBounds, width: Int, height: Int) {
+        if (width <= 0 || height <= 0) return
+        sharedPreferences.edit()
+            .putFloat("${prefix}_min_x", bounds.minX / width)
+            .putFloat("${prefix}_max_x", bounds.maxX / width)
+            .putFloat("${prefix}_min_y", bounds.minY / height)
+            .putFloat("${prefix}_max_y", bounds.maxY / height)
+            .apply()
+    }
+
+    private fun loadPhysicalBounds(prefix: String, width: Int, height: Int): JoystickTravelBounds? {
+        val keys = listOf("min_x", "max_x", "min_y", "max_y")
+        if (keys.any { !sharedPreferences.contains("${prefix}_$it") }) return null
+        return JoystickTravelBounds(
+            sharedPreferences.getFloat("${prefix}_min_x", 0f) * width,
+            sharedPreferences.getFloat("${prefix}_max_x", 0f) * width,
+            sharedPreferences.getFloat("${prefix}_min_y", 0f) * height,
+            sharedPreferences.getFloat("${prefix}_max_y", 0f) * height
+        )
+    }
+
+    private fun applySavedPhysicalJoystickLayout() {
+        if (resources.configuration.orientation != Configuration.ORIENTATION_LANDSCAPE ||
+            !sharedPreferences.getBoolean(KEY_PHYSICAL_CALIBRATED, false)
+        ) {
+            resetPhysicalJoystickLayout()
+            return
+        }
+
+        val parent = leftJoyStick.parent as? ViewGroup ?: return
+        if (parent.width <= 0 || parent.height <= 0) return
+        val left = loadPhysicalBounds(PHYSICAL_LEFT, parent.width, parent.height) ?: return
+        val right = loadPhysicalBounds(PHYSICAL_RIGHT, parent.width, parent.height) ?: return
+        applyPhysicalBounds(leftJoyStick, left)
+        applyPhysicalBounds(rightJoyStick, right)
+    }
+
+    private fun resetPhysicalJoystickLayout() {
+        resetJoystickLayout(leftJoyStick, originalLeftJoystickWidth, originalLeftJoystickHeight)
+        resetJoystickLayout(rightJoyStick, originalRightJoystickWidth, originalRightJoystickHeight)
+    }
+
+    private fun resetJoystickLayout(joystick: Joystick, originalWidth: Int, originalHeight: Int) {
+        val params = joystick.layoutParams
+        if (params.width != originalWidth || params.height != originalHeight) {
+            params.width = originalWidth
+            params.height = originalHeight
+            joystick.layoutParams = params
+        }
+        joystick.setPhysicalGeometryEnabled(false)
+        joystick.translationX = 0f
+        joystick.translationY = 0f
+    }
+
+    private fun applyPhysicalBounds(joystick: Joystick, bounds: JoystickTravelBounds) {
+        // Joystick's active travel is 75% of its view size; the remaining area holds the knob.
+        val params = joystick.layoutParams
+        params.width = ceil(bounds.width * PHYSICAL_JOYSTICK_VISUAL_SCALE / 0.75f).toInt().coerceAtLeast(1)
+        params.height = ceil(bounds.height * PHYSICAL_JOYSTICK_VISUAL_SCALE / 0.75f).toInt().coerceAtLeast(1)
+        joystick.setPhysicalGeometryEnabled(true, PHYSICAL_JOYSTICK_VISUAL_SCALE)
+        joystick.layoutParams = params
+        joystick.post {
+            joystick.x = bounds.centerX - joystick.width / 2f
+            joystick.y = bounds.centerY - joystick.height / 2f
+        }
+    }
+
+    @Deprecated("Deprecated in Android")
+    override fun onBackPressed() {
+        val overlay = calibrationView
+        if (overlay != null) {
+            (overlay.parent as? ViewGroup)?.removeView(overlay)
+            calibrationView = null
+            initializeJoystickStates()
+            return
+        }
+        super.onBackPressed()
     }
 
     private fun isDualHandAirplaneMode(): Boolean =

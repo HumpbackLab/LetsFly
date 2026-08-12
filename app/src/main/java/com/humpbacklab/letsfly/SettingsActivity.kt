@@ -34,6 +34,8 @@ class SettingsActivity : AppCompatActivity() {
     private lateinit var singleHandRadioButton: RadioButton
     private lateinit var dualHandRadioButton: RadioButton
     private lateinit var dualHandAirplaneRadioButton: RadioButton
+    private lateinit var physicalJoystickCalibrationButton: Button
+    private lateinit var resetPhysicalJoysticksButton: Button
     private lateinit var backButton: Button
 
     private lateinit var sharedPreferences: SharedPreferences
@@ -66,6 +68,8 @@ class SettingsActivity : AppCompatActivity() {
         setupChannelRangeSliders()
         setupShowValuesToggle()
         setupOrientationSelection()
+        setupPhysicalJoystickCalibration()
+        setupResetPhysicalJoysticks()
         setupBackButton()
         loadSavedPreferences()
     }
@@ -86,6 +90,8 @@ class SettingsActivity : AppCompatActivity() {
         singleHandRadioButton = findViewById(R.id.singleHandRadioButton)
         dualHandRadioButton = findViewById(R.id.dualHandRadioButton)
         dualHandAirplaneRadioButton = findViewById(R.id.dualHandAirplaneRadioButton)
+        physicalJoystickCalibrationButton = findViewById(R.id.physicalJoystickCalibrationButton)
+        resetPhysicalJoysticksButton = findViewById(R.id.resetPhysicalJoysticksButton)
         backButton = findViewById(R.id.backButton)
     }
 
@@ -283,6 +289,38 @@ class SettingsActivity : AppCompatActivity() {
             }
 
             finish() // Close the settings activity and return to main activity
+        }
+    }
+
+    private fun setupPhysicalJoystickCalibration() {
+        physicalJoystickCalibrationButton.setOnClickListener {
+            // Two clip-on sticks require the landscape layout. Returning to MainActivity
+            // starts a full-screen capture before either joystick view is repositioned.
+            sharedPreferences.edit()
+                .putBoolean(MainActivity.KEY_PHYSICAL_CALIBRATION_REQUESTED, true)
+                .putBoolean(KEY_GYRO_ENABLED, false)
+                .putString(KEY_ORIENTATION_MODE, ORIENTATION_DUAL_HAND)
+                .apply()
+            requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
+            finish()
+        }
+    }
+
+    private fun setupResetPhysicalJoysticks() {
+        resetPhysicalJoysticksButton.setOnClickListener {
+            sharedPreferences.edit()
+                .remove("physical_joystick_calibrated")
+                .remove("physical_joystick_calibration_requested")
+                .remove("physical_left_min_x")
+                .remove("physical_left_max_x")
+                .remove("physical_left_min_y")
+                .remove("physical_left_max_y")
+                .remove("physical_right_min_x")
+                .remove("physical_right_max_x")
+                .remove("physical_right_min_y")
+                .remove("physical_right_max_y")
+                .apply()
+            Toast.makeText(this, R.string.physical_joystick_reset_complete, Toast.LENGTH_SHORT).show()
         }
     }
 

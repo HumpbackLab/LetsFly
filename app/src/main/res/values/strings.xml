@@ -31,6 +31,13 @@
     <string name="toggle_show_debug_values">Show Debug Values (Channels/Angles)</string>
     <string name="section_additional_settings">Additional Settings</string>
     <string name="msg_more_settings_coming">More settings coming soon...</string>
+    <string name="btn_calibrate_physical_joysticks">Calibrate Physical Joysticks</string>
+    <string name="btn_reset_physical_joysticks">Restore Default Joysticks</string>
+    <string name="physical_joystick_reset_complete">Default joystick layout restored.</string>
+    <string name="physical_calibration_left_prompt">Step 1 of 2: Move the LEFT stick through its full X/Y travel, then release it.\nPress Back to cancel.</string>
+    <string name="physical_calibration_right_prompt">Step 2 of 2: Move the RIGHT stick through its full X/Y travel, then release it.\nPress Back to cancel.</string>
+    <string name="physical_calibration_invalid">Travel was too small. Move this stick fully in every direction, then release it.</string>
+    <string name="physical_calibration_complete">Physical joystick calibration saved.</string>
     <string name="section_display_mode">Display Mode</string>
     <string name="radio_single_hand_portrait">Single Hand Mode (Portrait)</string>
     <string name="radio_dual_hand_landscape">Dual Hand Mode (Landscape)</string>

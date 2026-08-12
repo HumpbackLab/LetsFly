@@ -320,14 +320,21 @@
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toBottomOf="@id/additionalSettingsLabel">
 
-            <!-- Placeholder for future settings -->
-            <TextView
+            <Button
+                android:id="@+id/physicalJoystickCalibrationButton"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:padding="@dimen/spacing_s"
-                android:text="@string/msg_more_settings_coming"
-                android:textAlignment="center"
-                android:textColor="@android:color/darker_gray"
+                android:text="@string/btn_calibrate_physical_joysticks"
+                android:textSize="@dimen/text_size_normal" />
+
+            <Button
+                android:id="@+id/resetPhysicalJoysticksButton"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/spacing_s"
+                android:padding="@dimen/spacing_s"
+                android:text="@string/btn_reset_physical_joysticks"
                 android:textSize="@dimen/text_size_normal" />
 
         </LinearLayout>

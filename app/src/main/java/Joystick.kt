@@ -61,6 +61,10 @@ class Joystick(context: Context, attrs: AttributeSet) : View(context, attrs){
     // Flag to control extended Y-axis range
     private var extendedRangeY: Boolean = false
     private var horizontalLocked: Boolean = false
+    private var physicalGeometryEnabled: Boolean = false
+    private var physicalVisualScale: Float = 1f
+    private var travelRadiusX: Float = 0f
+    private var travelRadiusY: Float = 0f
 
     var enable:Boolean=true
 
@@ -107,6 +111,16 @@ class Joystick(context: Context, attrs: AttributeSet) : View(context, attrs){
         }
     }
 
+    /** Use an independently calibrated X/Y travel area instead of the XML shape. */
+    fun setPhysicalGeometryEnabled(enabled: Boolean, visualScale: Float = 1f) {
+        val safeVisualScale = visualScale.coerceAtLeast(1f)
+        if (physicalGeometryEnabled == enabled && physicalVisualScale == safeVisualScale) return
+        physicalGeometryEnabled = enabled
+        physicalVisualScale = safeVisualScale
+        requestLayout()
+        invalidate()
+    }
+
     fun setOnJoystickMoveListener(listener:OnJoystickMoveListener , interval:Long){
         this.listener=listener
         repeatInterval=interval
@@ -133,7 +147,7 @@ class Joystick(context: Context, attrs: AttributeSet) : View(context, attrs){
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
         // setting the measured values to resize the view to a certain width and
         // height
-        if (rectangularBoundaryEnabled) {
+        if (rectangularBoundaryEnabled || physicalGeometryEnabled) {
             // For rectangular boundary, use actual requested dimensions
             val width = measure(widthMeasureSpec)
             val height = measure(heightMeasureSpec)
@@ -157,8 +171,17 @@ class Joystick(context: Context, attrs: AttributeSet) : View(context, attrs){
         buttonRadius = (d / 2 * 0.25).toInt()
         joystickRadius = (d / 2 * 0.75).toInt()
 
-        defaultX = (centerX + defaultXPercent*joystickRadius).toInt()
-        defaultY = (centerY - defaultYPercent*joystickRadius).toInt()
+        travelRadiusX = if (physicalGeometryEnabled) {
+            xNew * 0.375f / physicalVisualScale
+        } else joystickRadius.toFloat()
+        travelRadiusY = when {
+            physicalGeometryEnabled -> yNew * 0.375f / physicalVisualScale
+            rectangularBoundaryEnabled -> joystickRadius * aspectRatio
+            else -> joystickRadius.toFloat()
+        }
+
+        defaultX = (centerX + defaultXPercent * travelRadiusX).toInt()
+        defaultY = (centerY - defaultYPercent * travelRadiusY).toInt()
 
         xPosition=defaultX
         yPosition=defaultY
@@ -169,10 +192,10 @@ class Joystick(context: Context, attrs: AttributeSet) : View(context, attrs){
         super.onDraw(canvas)
 
         canvas.apply {
-            if (rectangularBoundaryEnabled) {
+            if (rectangularBoundaryEnabled || physicalGeometryEnabled) {
                 // Draw elliptical boundary for rectangular mode
-                val rectWidth = joystickRadius.toFloat()
-                val rectHeight = (joystickRadius * aspectRatio).toFloat()
+                val rectWidth = if (physicalGeometryEnabled) travelRadiusX * physicalVisualScale else travelRadiusX
+                val rectHeight = if (physicalGeometryEnabled) travelRadiusY * physicalVisualScale else travelRadiusY
 
                 // Draw outer ellipse
                 drawOval(centerX - rectWidth, centerY - rectHeight, centerX + rectWidth, centerY + rectHeight, mainCirclePaint)
@@ -196,12 +219,12 @@ class Joystick(context: Context, attrs: AttributeSet) : View(context, attrs){
         }
     }
 
-    public fun getOutX()=(xPosition - centerX) / joystickRadius
-    public fun getOutY()=-(yPosition - centerY) / (if (rectangularBoundaryEnabled) (joystickRadius * aspectRatio) else joystickRadius).toFloat()
+    public fun getOutX() = (xPosition - centerX) / travelRadiusX.coerceAtLeast(1f)
+    public fun getOutY() = -(yPosition - centerY) / travelRadiusY.coerceAtLeast(1f)
 
     public fun setXY(targetX:Float,targetY:Float){
-        xPosition = if (horizontalLocked) defaultX else (joystickRadius * targetX + centerX).toInt()
-        yPosition=(centerY- if (rectangularBoundaryEnabled) (joystickRadius * aspectRatio * targetY) else (joystickRadius * targetY)).toInt()
+        xPosition = if (horizontalLocked) defaultX else (travelRadiusX * targetX + centerX).toInt()
+        yPosition = (centerY - travelRadiusY * targetY).toInt()
         invalidate()
     }
 
@@ -261,10 +284,10 @@ class Joystick(context: Context, attrs: AttributeSet) : View(context, attrs){
             } else if(xPosition < centerX - joystickRadius) {
                 xPosition = (centerX - joystickRadius).toInt()
             }
-        } else if (rectangularBoundaryEnabled) {
+        } else if (rectangularBoundaryEnabled || physicalGeometryEnabled) {
             // Use rectangular boundary limits
-            val halfWidth = joystickRadius
-            val halfHeight = (joystickRadius * aspectRatio).toInt()
+            val halfWidth = travelRadiusX.toInt()
+            val halfHeight = travelRadiusY.toInt()
 
             if(xPosition > centerX + halfWidth) {
                 xPosition = (centerX + halfWidth).toInt()
