@@ -1,0 +1,181 @@
+name: Build and publish release
+
+on:
+  workflow_dispatch:
+    inputs:
+      channel:
+        description: Release channel
+        required: true
+        default: beta
+        type: choice
+        options:
+          - beta
+          - release
+      version:
+        description: Version (leave empty to use app/build.gradle)
+        required: false
+        type: string
+
+permissions:
+  contents: write
+
+concurrency:
+  group: letsfly-release-${{ inputs.channel }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: Build and publish ${{ inputs.channel }}
+    runs-on: ubuntu-22.04
+
+    steps:
+      - name: Check out the default branch
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+
+      - name: Set up Java for Android SDK
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v4
+
+      - name: Install Android SDK packages
+        run: sdkmanager "platforms;android-33" "build-tools;33.0.0"
+
+      - name: Set up Java for Gradle
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '11'
+          cache: gradle
+
+      - name: Resolve release metadata
+        id: meta
+        env:
+          CHANNEL: ${{ inputs.channel }}
+          REQUESTED_VERSION: ${{ inputs.version }}
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+
+          SOURCE_VERSION="$(sed -n 's/^[[:space:]]*versionName[[:space:]]*"\([^"]*\)"/\1/p' app/build.gradle | head -n 1)"
+          VERSION="${REQUESTED_VERSION:-$SOURCE_VERSION}"
+          [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+([.-][0-9A-Za-z.-]+)?$ ]] || {
+            echo "Invalid version: $VERSION" >&2
+            exit 1
+          }
+
+          if [[ "$CHANNEL" == beta ]]; then
+            TAG=beta
+            TITLE="Let's Fly $VERSION beta"
+          else
+            TAG="v$VERSION"
+            TITLE="Let's Fly $TAG"
+          fi
+
+          {
+            echo "version=$VERSION"
+            echo "tag=$TAG"
+            echo "title=$TITLE"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Apply requested version
+        if: inputs.version != ''
+        env:
+          VERSION: ${{ steps.meta.outputs.version }}
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          sed -E -i "0,/versionName[[:space:]]+\"[^\"]+\"/s//versionName \"$VERSION\"/" app/build.gradle
+
+      - name: Commit release version
+        if: inputs.channel == 'release' && inputs.version != ''
+        env:
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+          VERSION: ${{ steps.meta.outputs.version }}
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add app/build.gradle
+          git diff --cached --check
+
+          if ! git diff --cached --quiet; then
+            git commit -m "chore: release $VERSION"
+            git push origin "HEAD:$DEFAULT_BRANCH"
+          fi
+
+      - name: Configure Android release signing
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          for value in ANDROID_KEYSTORE_BASE64 ANDROID_KEYSTORE_PASSWORD ANDROID_KEY_ALIAS ANDROID_KEY_PASSWORD; do
+            [[ -n "${!value}" ]] || { echo "$value is not configured" >&2; exit 1; }
+          done
+
+          KEYSTORE="$RUNNER_TEMP/letsfly-release.jks"
+          printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 --decode > "$KEYSTORE"
+          chmod 600 "$KEYSTORE"
+          printf '%s\n' \
+            "STORE_FILE=$KEYSTORE" \
+            "STORE_PASSWORD=$ANDROID_KEYSTORE_PASSWORD" \
+            "KEY_ALIAS=$ANDROID_KEY_ALIAS" \
+            "KEY_PASSWORD=$ANDROID_KEY_PASSWORD" > local.properties
+
+      - name: Build release APK
+        run: ./gradlew --no-daemon clean assembleRelease
+
+      - name: Create or update GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CHANNEL: ${{ inputs.channel }}
+          TAG: ${{ steps.meta.outputs.tag }}
+          TITLE: ${{ steps.meta.outputs.title }}
+          VERSION: ${{ steps.meta.outputs.version }}
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          APK="LetsFly-${CHANNEL}-${VERSION}.apk"
+          cp app/build/outputs/apk/release/app-release.apk "$APK"
+
+          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            if [[ "$CHANNEL" == beta ]]; then
+              gh release edit "$TAG" \
+                --repo "$GITHUB_REPOSITORY" \
+                --title "$TITLE" \
+                --prerelease
+            else
+              gh release edit "$TAG" \
+                --repo "$GITHUB_REPOSITORY" \
+                --title "$TITLE" \
+                --prerelease=false
+            fi
+          elif [[ "$CHANNEL" == beta ]]; then
+            gh release create "$TAG" \
+              --repo "$GITHUB_REPOSITORY" \
+              --target "$DEFAULT_BRANCH" \
+              --title "$TITLE" \
+              --notes "Automated beta build for version $VERSION." \
+              --prerelease
+          else
+            gh release create "$TAG" \
+              --repo "$GITHUB_REPOSITORY" \
+              --target "$DEFAULT_BRANCH" \
+              --title "$TITLE" \
+              --generate-notes
+          fi
+
+          gh release upload "$TAG" "$APK" \
+            --repo "$GITHUB_REPOSITORY" \
+            --clobber
