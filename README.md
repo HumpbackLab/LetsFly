@@ -106,6 +106,12 @@ ch34x/                                       # USB驱动模块
 
 欢迎贡献！请随时提交拉取请求。对于重大更改，请先开issue讨论您想要更改的内容。
 
+## 发布
+
+在 GitHub Actions 中手动运行 `Build and publish release`，选择 `release` 或 `beta` 通道即可编译并创建 Release。正式发布时填写版本号会先更新并提交 `app/build.gradle`；beta 发布使用 `beta` 标签，版本号只在本次构建中临时修改，并标记为 prerelease。
+
+发布前需要在仓库 Secrets 中配置 `ANDROID_KEYSTORE_BASE64`、`ANDROID_KEYSTORE_PASSWORD`、`ANDROID_KEY_ALIAS` 和 `ANDROID_KEY_PASSWORD`。
+
 ## 许可证
 
 本项目根据GNU通用公共许可证第3版（GPL-3.0）获得许可 - 详见[LICENSE](LICENSE)文件。
