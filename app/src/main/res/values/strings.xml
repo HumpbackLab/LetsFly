@@ -42,6 +42,7 @@
     <string name="radio_single_hand_portrait">Single Hand Mode (Portrait)</string>
     <string name="radio_dual_hand_landscape">Dual Hand Mode (Landscape)</string>
     <string name="radio_dual_hand_airplane">Dual Hand Airplane Mode (Landscape)</string>
+    <string name="radio_rc_car">RC Car Mode (Landscape)</string>
     <string name="btn_back">Back</string>
 
     <!-- Dialog Messages -->

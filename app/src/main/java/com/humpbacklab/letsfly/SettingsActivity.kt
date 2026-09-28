@@ -34,6 +34,7 @@ class SettingsActivity : AppCompatActivity() {
     private lateinit var singleHandRadioButton: RadioButton
     private lateinit var dualHandRadioButton: RadioButton
     private lateinit var dualHandAirplaneRadioButton: RadioButton
+    private lateinit var rcCarRadioButton: RadioButton
     private lateinit var physicalJoystickCalibrationButton: Button
     private lateinit var resetPhysicalJoysticksButton: Button
     private lateinit var backButton: Button
@@ -54,6 +55,7 @@ class SettingsActivity : AppCompatActivity() {
         private const val ORIENTATION_SINGLE_HAND = "single_hand"  // portrait
         private const val ORIENTATION_DUAL_HAND = "dual_hand"     // landscape
         private const val ORIENTATION_DUAL_HAND_AIRPLANE = "dual_hand_airplane"
+        private const val ORIENTATION_RC_CAR = "rc_car"
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -90,6 +92,7 @@ class SettingsActivity : AppCompatActivity() {
         singleHandRadioButton = findViewById(R.id.singleHandRadioButton)
         dualHandRadioButton = findViewById(R.id.dualHandRadioButton)
         dualHandAirplaneRadioButton = findViewById(R.id.dualHandAirplaneRadioButton)
+        rcCarRadioButton = findViewById(R.id.rcCarRadioButton)
         physicalJoystickCalibrationButton = findViewById(R.id.physicalJoystickCalibrationButton)
         resetPhysicalJoysticksButton = findViewById(R.id.resetPhysicalJoysticksButton)
         backButton = findViewById(R.id.backButton)
@@ -246,6 +249,7 @@ class SettingsActivity : AppCompatActivity() {
         when (selectedOrientation) {
             ORIENTATION_DUAL_HAND -> dualHandRadioButton.isChecked = true
             ORIENTATION_DUAL_HAND_AIRPLANE -> dualHandAirplaneRadioButton.isChecked = true
+            ORIENTATION_RC_CAR -> rcCarRadioButton.isChecked = true
             else -> singleHandRadioButton.isChecked = true  // Default to single hand
         }
 
@@ -258,6 +262,10 @@ class SettingsActivity : AppCompatActivity() {
                 R.id.dualHandAirplaneRadioButton -> {
                     requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
                     ORIENTATION_DUAL_HAND_AIRPLANE
+                }
+                R.id.rcCarRadioButton -> {
+                    requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
+                    ORIENTATION_RC_CAR
                 }
                 else -> { // Default to single hand
                     requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
@@ -279,6 +287,7 @@ class SettingsActivity : AppCompatActivity() {
             val orientationMode = when (orientationRadioGroup.checkedRadioButtonId) {
                 R.id.dualHandRadioButton -> ORIENTATION_DUAL_HAND
                 R.id.dualHandAirplaneRadioButton -> ORIENTATION_DUAL_HAND_AIRPLANE
+                R.id.rcCarRadioButton -> ORIENTATION_RC_CAR
                 else -> ORIENTATION_SINGLE_HAND
             }
 

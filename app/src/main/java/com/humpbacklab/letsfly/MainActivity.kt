@@ -61,6 +61,7 @@ class MainActivity : AppCompatActivity() {
         const val ORIENTATION_SINGLE_HAND = "single_hand"
         const val ORIENTATION_DUAL_HAND = "dual_hand"
         const val ORIENTATION_DUAL_HAND_AIRPLANE = "dual_hand_airplane"
+        const val ORIENTATION_RC_CAR = "rc_car"
 
         const val KEY_PHYSICAL_CALIBRATION_REQUESTED = "physical_joystick_calibration_requested"
         private const val KEY_PHYSICAL_CALIBRATED = "physical_joystick_calibrated"
@@ -149,6 +150,7 @@ class MainActivity : AppCompatActivity() {
     private var originalRightJoystickWidth: Int = 0
     private var originalRightJoystickHeight: Int = 0
     private var calibrationView: PhysicalJoystickCalibrationView? = null
+    private var activeControlMode: String? = null
 
     private lateinit var armSwitch: Switch
 
@@ -207,9 +209,14 @@ class MainActivity : AppCompatActivity() {
         ch7SwitchControl = createThreePositionSwitch(R.id.switchCH7, SwitchPosition.LOW, 6)  // CH7 corresponds to index 6
         ch8SwitchControl = createThreePositionSwitch(R.id.switchCH8, SwitchPosition.LOW, 7)  // CH8 corresponds to index 7
 
-        val loadLeftJoyStick = { x:Float, y:Float -> 
-            val isGyroEnabled = sharedPreferences.getBoolean("gyro_enabled", false)
+        val loadLeftJoyStick = loadLeft@{ x:Float, y:Float ->
+            val isGyroEnabled = sharedPreferences.getBoolean("gyro_enabled", false) && !isRcCarMode()
             if(!isGyroEnabled){
+                if (isRcCarMode()) {
+                    val range = sharedPreferences.getInt("ch4_range", DEFAULT_CH4_RANGE)
+                    crsfData.data_array[3] = duty2CRSF(RcCarChannelMapping.duty(x, range))
+                    return@loadLeft
+                }
                 if (!isDualHandAirplaneMode()) {
                     // Apply CH4 (index 3) range adjustment
                     val ch4RangePercentage = sharedPreferences.getInt("ch4_range", DEFAULT_CH4_RANGE) / 100f
@@ -225,9 +232,14 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-        val loadRightJoyStick = { x:Float, y:Float ->
-            val isGyroEnabled = sharedPreferences.getBoolean("gyro_enabled", false)
+        val loadRightJoyStick = loadRight@{ x:Float, y:Float ->
+            val isGyroEnabled = sharedPreferences.getBoolean("gyro_enabled", false) && !isRcCarMode()
             if (!isGyroEnabled){
+                if (isRcCarMode()) {
+                    val range = sharedPreferences.getInt("ch3_range", 100)
+                    crsfData.data_array[2] = duty2CRSF(RcCarChannelMapping.duty(y, range))
+                    return@loadRight
+                }
                 if (isDualHandAirplaneMode()) {
                     // Paper-airplane mode has no roll input. Right X controls yaw instead.
                     crsfData.data_array[0] = duty2CRSF(0.5f)
@@ -271,12 +283,17 @@ class MainActivity : AppCompatActivity() {
         // Add listeners to switches for visual feedback
         armSwitch.setOnCheckedChangeListener { _, isChecked ->
             updateSwitchVisualFeedback(armSwitch, isChecked)
-            // Enable/disable left joystick based on arm switch state
+            // Enable the controls when armed.
             leftJoyStick.enable = isChecked
-            // When disarmed, reset throttle to minimum
+            if (isRcCarMode()) rightJoyStick.enable = isChecked
+            // When disarmed, reset aircraft throttle to minimum or car controls to center.
             if (!isChecked) {
-                leftJoyStick.setXY(0f, -1.0f)
+                leftJoyStick.setXY(0f, if (isRcCarMode()) 0f else -1.0f)
                 loadLeftJoyStick(leftJoyStick.getOutX(), leftJoyStick.getOutY())
+                if (isRcCarMode()) {
+                    rightJoyStick.setXY(0f, 0f)
+                    loadRightJoyStick(0f, 0f)
+                }
             }
         }
 
@@ -305,7 +322,7 @@ class MainActivity : AppCompatActivity() {
         // Set initial joystick positions after view layout is complete
         leftJoyStick.post {
             applySavedPhysicalJoystickLayout()
-            leftJoyStick.setXY(0f, -1.0f)
+            leftJoyStick.setXY(0f, if (isRcCarMode()) 0f else -1.0f)
             rightJoyStick.setXY(0f, 0f)
             loadLeftJoyStick(leftJoyStick.getOutX(), leftJoyStick.getOutY())
             loadRightJoyStick(rightJoyStick.getOutX(), rightJoyStick.getOutY())
@@ -326,7 +343,7 @@ class MainActivity : AppCompatActivity() {
         // Check shared preferences for the orientation mode
         val orientationMode = sharedPreferences.getString("orientation_mode", ORIENTATION_SINGLE_HAND)
         when (orientationMode) {
-            ORIENTATION_DUAL_HAND, ORIENTATION_DUAL_HAND_AIRPLANE -> {
+            ORIENTATION_DUAL_HAND, ORIENTATION_DUAL_HAND_AIRPLANE, ORIENTATION_RC_CAR -> {
                 requestedOrientation = android.content.pm.ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
             }
             else -> { // Default to single hand (portrait)
@@ -338,6 +355,7 @@ class MainActivity : AppCompatActivity() {
     override fun onResume() {
         super.onResume()
         applyControlModeDefaults()
+        initializeJoystickStates()
         leftJoyStick.post {
             applySavedPhysicalJoystickLayout()
             if (resources.configuration.orientation == Configuration.ORIENTATION_LANDSCAPE &&
@@ -376,13 +394,13 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun initializeJoystickStates() {
-        val isGyroEnabled = sharedPreferences.getBoolean("gyro_enabled", false)
+        val isGyroEnabled = sharedPreferences.getBoolean("gyro_enabled", false) && !isRcCarMode()
         if (isGyroEnabled) {
             leftJoyStick.enable = false
             rightJoyStick.enable = false
         } else {
             leftJoyStick.enable = armSwitch.isChecked
-            rightJoyStick.enable = true
+            rightJoyStick.enable = if (isRcCarMode()) armSwitch.isChecked else true
         }
     }
 
@@ -450,7 +468,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun applySavedPhysicalJoystickLayout() {
-        if (resources.configuration.orientation != Configuration.ORIENTATION_LANDSCAPE ||
+        if (isRcCarMode() || resources.configuration.orientation != Configuration.ORIENTATION_LANDSCAPE ||
             !sharedPreferences.getBoolean(KEY_PHYSICAL_CALIBRATED, false)
         ) {
             resetPhysicalJoystickLayout()
@@ -466,8 +484,14 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun resetPhysicalJoystickLayout() {
-        resetJoystickLayout(leftJoyStick, originalLeftJoystickWidth, originalLeftJoystickHeight)
-        resetJoystickLayout(rightJoyStick, originalRightJoystickWidth, originalRightJoystickHeight)
+        if (isRcCarMode()) {
+            val density = resources.displayMetrics.density
+            resetJoystickLayout(leftJoyStick, (280 * density).toInt(), (144 * density).toInt())
+            resetJoystickLayout(rightJoyStick, (144 * density).toInt(), (280 * density).toInt())
+        } else {
+            resetJoystickLayout(leftJoyStick, originalLeftJoystickWidth, originalLeftJoystickHeight)
+            resetJoystickLayout(rightJoyStick, originalRightJoystickWidth, originalRightJoystickHeight)
+        }
     }
 
     private fun resetJoystickLayout(joystick: Joystick, originalWidth: Int, originalHeight: Int) {
@@ -510,9 +534,33 @@ class MainActivity : AppCompatActivity() {
     private fun isDualHandAirplaneMode(): Boolean =
         sharedPreferences.getString("orientation_mode", ORIENTATION_SINGLE_HAND) == ORIENTATION_DUAL_HAND_AIRPLANE
 
+    private fun isRcCarMode(): Boolean =
+        sharedPreferences.getString("orientation_mode", ORIENTATION_SINGLE_HAND) == ORIENTATION_RC_CAR
+
     private fun applyControlModeDefaults() {
+        val mode = sharedPreferences.getString("orientation_mode", ORIENTATION_SINGLE_HAND)
+        val changedMode = activeControlMode != null && activeControlMode != mode
+        activeControlMode = mode
         val airplaneMode = isDualHandAirplaneMode()
+        val carMode = isRcCarMode()
+        leftJoyStick.setAxisMode(if (carMode) Joystick.AxisMode.HORIZONTAL else Joystick.AxisMode.BOTH)
+        rightJoyStick.setAxisMode(if (carMode) Joystick.AxisMode.VERTICAL else Joystick.AxisMode.BOTH)
         leftJoyStick.setHorizontalLocked(airplaneMode)
+        if (carMode) {
+            leftJoyStick.setXY(0f, 0f)
+            rightJoyStick.setXY(0f, 0f)
+            crsfData.data_array[0] = duty2CRSF(0.5f)
+            crsfData.data_array[1] = duty2CRSF(0.5f)
+            crsfData.data_array[2] = duty2CRSF(0.5f)
+            crsfData.data_array[3] = duty2CRSF(0.5f)
+        } else if (changedMode) {
+            leftJoyStick.setXY(0f, -1f)
+            rightJoyStick.setXY(0f, 0f)
+            crsfData.data_array[0] = duty2CRSF(0.5f)
+            crsfData.data_array[1] = duty2CRSF(0.5f)
+            crsfData.data_array[2] = duty2CRSF(0f)
+            crsfData.data_array[3] = duty2CRSF(0.5f)
+        }
         if (airplaneMode && !sharedPreferences.getBoolean("gyro_enabled", false)) {
             crsfData.data_array[0] = duty2CRSF(0.5f)
             crsfData.data_array[3] = duty2CRSF(0.5f)
@@ -749,7 +797,7 @@ class MainActivity : AppCompatActivity() {
         val currentTime = System.currentTimeMillis()
 
         // Read gyro control state from shared preferences
-        val isGyroEnabled = sharedPreferences.getBoolean("gyro_enabled", false)
+        val isGyroEnabled = sharedPreferences.getBoolean("gyro_enabled", false) && !isRcCarMode()
 
         // Update CRSF data regardless of UI throttling
         if (isGyroEnabled) {

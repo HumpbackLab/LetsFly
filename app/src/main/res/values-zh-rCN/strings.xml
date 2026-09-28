@@ -42,6 +42,7 @@
     <string name="radio_single_hand_portrait">单手模式（竖屏）</string>
     <string name="radio_dual_hand_landscape">双手模式（横屏）</string>
     <string name="radio_dual_hand_airplane">双手纸飞机模式（横屏）</string>
+    <string name="radio_rc_car">RC车模式（横屏）</string>
     <string name="btn_back">返回</string>
 
     <!-- Dialog Messages -->
