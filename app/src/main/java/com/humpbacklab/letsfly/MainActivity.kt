@@ -4,9 +4,11 @@ import android.annotation.SuppressLint
 import android.app.AlertDialog
 import android.content.Context
 import android.content.Intent
+import android.content.res.ColorStateList
 import android.content.res.Configuration
 import android.graphics.Bitmap
 import android.graphics.Color
+import android.graphics.Matrix
 import android.graphics.PorterDuff
 import android.hardware.Sensor
 import android.hardware.SensorEvent
@@ -20,6 +22,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.FrameLayout
 import android.widget.Button
+import android.widget.ImageButton
 import android.widget.ImageView
 import android.widget.Switch
 import android.widget.TableLayout
@@ -116,6 +119,12 @@ class MainActivity : AppCompatActivity() {
     private lateinit var sharedPreferences: android.content.SharedPreferences
 
     private lateinit var videoView: ImageView
+    private lateinit var videoRotateButton: ImageButton
+    private lateinit var videoMirrorButton: ImageButton
+    private var videoRotationDegrees = 0
+    private var videoMirrored = false
+    private var videoWidth = 0
+    private var videoHeight = 0
     private lateinit var apfpvVideoReceiver: ApfpvVideoReceiver
     private val acceptingVideoFrames = AtomicBoolean(false)
     private val pendingVideoBitmap = AtomicReference<Bitmap?>()
@@ -126,6 +135,10 @@ class MainActivity : AppCompatActivity() {
             if (bitmap != null) {
                 if (acceptingVideoFrames.get()) {
                     videoView.setImageBitmap(bitmap)
+                    val sizeChanged = videoWidth != bitmap.width || videoHeight != bitmap.height
+                    videoWidth = bitmap.width
+                    videoHeight = bitmap.height
+                    if (sizeChanged) updateVideoMatrix()
                 } else {
                     bitmap.recycle()
                 }
@@ -183,6 +196,20 @@ class MainActivity : AppCompatActivity() {
         setContentView(R.layout.activity_main)
 
         videoView = findViewById(R.id.apfpvVideoView)
+        videoView.addOnLayoutChangeListener { _, _, _, _, _, _, _, _, _ -> updateVideoMatrix() }
+        videoRotateButton = findViewById(R.id.videoRotateButton)
+        videoMirrorButton = findViewById(R.id.videoMirrorButton)
+        videoRotateButton.setOnClickListener {
+            videoRotationDegrees = (videoRotationDegrees + 90) % 360
+            updateVideoControls()
+            updateVideoMatrix()
+        }
+        videoMirrorButton.setOnClickListener {
+            videoMirrored = !videoMirrored
+            updateVideoControls()
+            updateVideoMatrix()
+        }
+        updateVideoControls()
         apfpvVideoReceiver = ApfpvVideoReceiver(::queueLatestVideoFrame)
 
         // Initialize shared preferences
@@ -378,7 +405,37 @@ class MainActivity : AppCompatActivity() {
         videoFramePostScheduled.set(false)
         pendingVideoBitmap.getAndSet(null)?.recycle()
         videoView.setImageDrawable(null)
+        videoWidth = 0
+        videoHeight = 0
         super.onPause()
+    }
+
+    private fun updateVideoControls() {
+        videoRotateButton.contentDescription = getString(R.string.video_rotate_description, videoRotationDegrees)
+        videoMirrorButton.contentDescription = getString(
+            if (videoMirrored) R.string.video_mirror_on_description else R.string.video_mirror_off_description
+        )
+        videoMirrorButton.isSelected = videoMirrored
+        videoMirrorButton.imageTintList = ColorStateList.valueOf(
+            ContextCompat.getColor(this, if (videoMirrored) R.color.teal_200 else R.color.white)
+        )
+    }
+
+    private fun updateVideoMatrix() {
+        val viewWidth = videoView.width
+        val viewHeight = videoView.height
+        if (videoWidth == 0 || videoHeight == 0 || viewWidth == 0 || viewHeight == 0) return
+
+        val quarterTurn = videoRotationDegrees % 180 != 0
+        val rotatedWidth = if (quarterTurn) videoHeight else videoWidth
+        val rotatedHeight = if (quarterTurn) videoWidth else videoHeight
+        val scale = minOf(viewWidth.toFloat() / rotatedWidth, viewHeight.toFloat() / rotatedHeight)
+        videoView.imageMatrix = Matrix().apply {
+            postTranslate(-videoWidth / 2f, -videoHeight / 2f)
+            postRotate(videoRotationDegrees.toFloat())
+            postScale(if (videoMirrored) -scale else scale, scale)
+            postTranslate(viewWidth / 2f, viewHeight / 2f)
+        }
     }
 
     private fun queueLatestVideoFrame(bitmap: Bitmap) {
