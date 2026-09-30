@@ -39,7 +39,7 @@
     <string name="video_channel_not_changed">After reconnecting, the camera is still on channel %1$d. Channel %2$d was not confirmed.</string>
     <string name="video_channel_open_wifi_settings">Open Wi-Fi Settings</string>
     <string name="video_channel_occupancy_title">Nearby Wi-Fi Channel Activity</string>
-    <string name="video_channel_occupancy_note">Longer bars suggest more interference. Zero APs on the same channel can still mean adjacent-channel interference. Scans do not measure actual traffic.</string>
+    <string name="video_channel_occupancy_note">Bars combine signal strength and channel overlap; longer means more estimated interference. The right side shows same-channel AP count and the strongest signal within interference range. Scans do not measure actual traffic.</string>
     <string name="video_channel_details_show">▸ Show channel details</string>
     <string name="video_channel_details_hide">▾ Hide channel details</string>
     <string name="video_channel_scan_button">Refresh Nearby Wi-Fi</string>
@@ -55,9 +55,11 @@
     <string name="video_channel_scan_error">Could not read nearby Wi-Fi. Check permission and Location services.</string>
     <string name="video_channel_recommendation">Recommended channel %1$d · tap to select</string>
     <string name="video_channel_recommendation_current">Current channel %1$d is already recommended</string>
-    <string name="video_channel_usage_row">Channel %1$d, %2$d access points on the same channel</string>
+    <string name="video_channel_usage_row">Channel %1$d, %2$d access points on the same channel, strongest signal in interference range %3$s</string>
     <string name="video_channel_usage_channel">Ch %1$d</string>
-    <string name="video_channel_usage_count">%1$d same-ch</string>
+    <string name="video_channel_usage_count">%1$d same-ch\n%2$s</string>
+    <string name="video_channel_usage_signal">%1$d dBm</string>
+    <string name="video_channel_usage_no_signal">No signal</string>
     <string name="video_channel_recommendation_selected">Channel %1$d selected. Tap Apply to send it to the camera.</string>
 
     <!-- Settings Activity Strings -->

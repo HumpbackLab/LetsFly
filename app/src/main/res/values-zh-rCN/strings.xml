@@ -39,7 +39,7 @@
     <string name="video_channel_not_changed">重新连接后相机仍在信道 %1$d，尚未确认切换到信道 %2$d。</string>
     <string name="video_channel_open_wifi_settings">打开 Wi-Fi 设置</string>
     <string name="video_channel_occupancy_title">附近 Wi-Fi 信道占用参考</string>
-    <string name="video_channel_occupancy_note">横条越长，估算干扰越强；同频为 0 仍可能有邻频干扰。扫描无法反映实际流量。</string>
+    <string name="video_channel_occupancy_note">横条综合信号强度与信道重叠估算；越长表示预计干扰越强。右侧显示同频数量和影响范围内最强信号，扫描无法反映实际流量。</string>
     <string name="video_channel_details_show">▸ 查看信道详情</string>
     <string name="video_channel_details_hide">▾ 收起信道详情</string>
     <string name="video_channel_scan_button">刷新附近热点</string>
@@ -55,9 +55,11 @@
     <string name="video_channel_scan_error">读取附近 Wi-Fi 失败，请检查权限及定位服务。</string>
     <string name="video_channel_recommendation">推荐信道 %1$d · 点击选择</string>
     <string name="video_channel_recommendation_current">当前信道 %1$d 已是推荐选项</string>
-    <string name="video_channel_usage_row">信道 %1$d，%2$d 个同频热点</string>
+    <string name="video_channel_usage_row">信道 %1$d，%2$d 个同频热点，影响范围内最强信号 %3$s</string>
     <string name="video_channel_usage_channel">信道 %1$d</string>
-    <string name="video_channel_usage_count">%1$d 同频</string>
+    <string name="video_channel_usage_count">%1$d 同频\n%2$s</string>
+    <string name="video_channel_usage_signal">%1$d dBm</string>
+    <string name="video_channel_usage_no_signal">无信号</string>
     <string name="video_channel_recommendation_selected">已选中信道 %1$d，点击“应用”发送给相机。</string>
 
     <!-- Settings Activity Strings -->

@@ -80,5 +80,36 @@ class WifiChannelAdvisorTest {
         val channelTwo = assessment.loads.first { it.channel == 2 }
         assertEquals(0, channelTwo.nearbyCount)
         assertTrue(channelTwo.interference > 0.0)
+        assertEquals(-45, channelTwo.strongestSignalDbm)
+    }
+
+    @Test
+    fun strongAccessPointCanOutweighSeveralWeakAccessPoints() {
+        val assessment = WifiChannelAdvisor.assess(
+            listOf(1, 6),
+            listOf(WifiChannelAdvisor.AccessPoint(2412, -45)) +
+                List(6) { WifiChannelAdvisor.AccessPoint(2437, -85) },
+            currentChannel = null
+        )
+
+        val channelOne = assessment.loads.first { it.channel == 1 }
+        val channelSix = assessment.loads.first { it.channel == 6 }
+        assertEquals(1, channelOne.nearbyCount)
+        assertEquals(6, channelSix.nearbyCount)
+        assertTrue(channelOne.interference > channelSix.interference)
+        assertEquals(6, assessment.recommendedChannel)
+        assertEquals(-45, channelOne.strongestSignalDbm)
+    }
+
+    @Test
+    fun strongerNearbyAccessPointHasHigherInterferenceInCommonRssiRange() {
+        val weaker = WifiChannelAdvisor.assess(
+            listOf(1), listOf(WifiChannelAdvisor.AccessPoint(2412, -50)), null
+        )
+        val stronger = WifiChannelAdvisor.assess(
+            listOf(1), listOf(WifiChannelAdvisor.AccessPoint(2412, -40)), null
+        )
+
+        assertTrue(stronger.loads.single().interference > weaker.loads.single().interference)
     }
 }

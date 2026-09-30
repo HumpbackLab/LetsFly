@@ -2,6 +2,7 @@ package com.humpbacklab.letsfly
 
 import kotlin.math.max
 import kotlin.math.min
+import kotlin.math.pow
 
 /** Estimates nearby AP interference from scan results; this is not airtime utilization. */
 internal object WifiChannelAdvisor {
@@ -15,7 +16,8 @@ internal object WifiChannelAdvisor {
     data class ChannelLoad(
         val channel: Int,
         val nearbyCount: Int,
-        val interference: Double
+        val interference: Double,
+        val strongestSignalDbm: Int?
     )
 
     data class Assessment(
@@ -28,15 +30,23 @@ internal object WifiChannelAdvisor {
     ): Assessment {
         val loads = channels.map { channel ->
             val center = frequencyMhz(channel)
-            val nearbyCount = accessPoints.count { it.frequencyMhz == center }
-            val interference = accessPoints.sumOf { ap ->
+            var nearbyCount = 0
+            var interference = 0.0
+            var strongestSignalDbm: Int? = null
+            for (ap in accessPoints) {
+                if (ap.frequencyMhz == center) nearbyCount++
                 val apHalfWidth = max(11, ap.widthMhz / 2)
                 val overlap = max(0, min(center + 11, ap.centerFrequencyMhz + apHalfWidth) -
                     max(center - 11, ap.centerFrequencyMhz - apHalfWidth))
-                val signalWeight = ((ap.signalDbm + 95) / 45.0).coerceIn(0.1, 1.3)
-                overlap / 22.0 * signalWeight
+                if (overlap > 0) {
+                    strongestSignalDbm = max(strongestSignalDbm ?: Int.MIN_VALUE, ap.signalDbm)
+                    // RSSI is logarithmic; cap the weight of exceptionally strong APs.
+                    val signalWeight = 10.0.pow((ap.signalDbm + 80) / 20.0)
+                        .coerceIn(0.1, 100.0)
+                    interference += overlap / 22.0 * signalWeight
+                }
             }
-            ChannelLoad(channel, nearbyCount, interference)
+            ChannelLoad(channel, nearbyCount, interference, strongestSignalDbm)
         }
         if (loads.all { it.interference == 0.0 }) return Assessment(loads, null)
 

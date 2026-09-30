@@ -407,6 +407,9 @@ class SettingsActivity : AppCompatActivity() {
         val density = resources.displayMetrics.density
         val maxInterference = assessment.loads.maxOfOrNull { it.interference } ?: 0.0
         for (load in assessment.loads) {
+            val strongestSignal = load.strongestSignalDbm?.let {
+                getString(R.string.video_channel_usage_signal, it)
+            } ?: getString(R.string.video_channel_usage_no_signal)
             val row = LinearLayout(this).apply {
                 orientation = LinearLayout.HORIZONTAL
                 gravity = Gravity.CENTER_VERTICAL
@@ -414,7 +417,8 @@ class SettingsActivity : AppCompatActivity() {
                 isEnabled = currentVideoChannel != null
                 isFocusable = true
                 contentDescription = getString(
-                    R.string.video_channel_usage_row, load.channel, load.nearbyCount
+                    R.string.video_channel_usage_row,
+                    load.channel, load.nearbyCount, strongestSignal
                 )
                 setOnClickListener { selectSuggestedChannel(load.channel) }
             }
@@ -429,8 +433,10 @@ class SettingsActivity : AppCompatActivity() {
                 importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO
             }, LinearLayout.LayoutParams(0, (12 * density).roundToInt(), 1f))
             row.addView(TextView(this).apply {
-                text = getString(R.string.video_channel_usage_count, load.nearbyCount)
+                text = getString(R.string.video_channel_usage_count,
+                    load.nearbyCount, strongestSignal)
                 gravity = Gravity.END
+                setTextSize(12f)
             }, LinearLayout.LayoutParams((82 * density).roundToInt(),
                 LinearLayout.LayoutParams.WRAP_CONTENT))
             wifiChannelUsageContainer.addView(row)
