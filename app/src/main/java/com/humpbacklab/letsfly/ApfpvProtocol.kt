@@ -6,10 +6,13 @@ import java.io.ByteArrayOutputStream
 internal object ApfpvProtocol {
     const val UDP_PORT = 5600
     const val CAMERA_HOST = "192.168.4.1"
+    val WIFI_CHANNELS_2_4_GHZ: List<Int> = (1..13).toList()
+    val WIFI_CHANNELS_5_GHZ: List<Int> = listOf(36, 40, 44, 48, 149, 153, 157, 161, 165)
 
     private const val PACKET_HEADER_SIZE = 12
     private const val VIDEO_HEADER_SIZE = 18
-    private const val PACKET_VERSION = 3
+    private const val PACKET_VERSION = 5
+    private const val LEGACY_PACKET_VERSION = 3
     private const val PACKET_SIGNATURE = 56
     private const val PRIMARY_PACKET_COUNT = 6
     private const val TRANSPORT_PACKET_COUNT = 8
@@ -19,7 +22,13 @@ internal object ApfpvProtocol {
     private const val GROUND_CONFIG_PACKET_TYPE = 1
     private const val AIR_HEADER_SIZE = 12
     private const val GROUND_HEADER_SIZE = 11
-    private const val GROUND_TRANSPORT_PAYLOAD_SIZE = 64
+    // GROUND2AIR_MAX_MTU changed from 64 in v3 to 128 in v5.
+    private const val GROUND_TRANSPORT_PAYLOAD_SIZE_V3 = 64
+    private const val GROUND_TRANSPORT_PAYLOAD_SIZE_V5 = 128
+    // Packed config layouts: v3 has a 30-byte CameraConfig; v5 adds one
+    // camera flag and the 40-byte lens calibration before DataChannelConfig.
+    private const val WIFI_CHANNEL_OFFSET_V3 = 44
+    private const val WIFI_CHANNEL_OFFSET_V5 = 85
     private const val GROUND_FEC_K = 2
     private const val GROUND_FEC_N = 3
     private const val DEFAULT_GS_DEVICE_ID = 0x4C46
@@ -40,7 +49,8 @@ internal object ApfpvProtocol {
     data class TransportPacket(
         val blockIndex: Long,
         val packetIndex: Int,
-        val payload: ByteArray
+        val payload: ByteArray,
+        val version: Int = PACKET_VERSION
     )
 
     /**
@@ -54,17 +64,43 @@ internal object ApfpvProtocol {
         private var airConfig: AirConfig? = null
         private var firstPayload: ByteArray? = null
         private var blockIndex = 0L
+        private var requestedWifiChannel: Int? = null
+        private var packetVersion = PACKET_VERSION
+
+        @Synchronized
+        fun observePacketVersion(version: Int) {
+            if (version != PACKET_VERSION && version != LEGACY_PACKET_VERSION) return
+            if (packetVersion != version) {
+                packetVersion = version
+                firstPayload = null
+                blockIndex = (blockIndex + 1) and 0xFF_FFFFL
+            }
+        }
+
+        @Synchronized
+        fun currentWifiChannel(): Int? = airConfig?.packet?.let { packet ->
+            val offset = wifiChannelOffset(unsigned(packet[6])) ?: return@let null
+            if (packet.size <= offset) return@let null
+            val channel = unsigned(packet[offset])
+            channel.takeIf { it in WIFI_CHANNELS_2_4_GHZ || it in WIFI_CHANNELS_5_GHZ }
+        }
+
+        @Synchronized
+        fun requestWifiChannel(channel: Int) {
+            require(channel in WIFI_CHANNELS_2_4_GHZ || channel in WIFI_CHANNELS_5_GHZ)
+            requestedWifiChannel = channel
+        }
 
         @Synchronized
         fun acceptAirConfig(payload: ByteArray): Boolean {
             val parsed = parseAirConfig(payload) ?: return false
-            if (parsed.gsDeviceId == 0) {
-                return false
-            }
-            // APFPV keeps its previous pairing indefinitely. Reuse the ID advertised
-            // by Air so a newly installed client can resume that legitimate session.
-            activeGsDeviceId = parsed.gsDeviceId
+            // Before pairing Air advertises gsDeviceId=0. A config addressed to
+            // its airDeviceId can establish the session; keep our nonzero GS ID.
+            // If Air already owns a GS ID, resume that existing session.
+            if (parsed.gsDeviceId != 0) activeGsDeviceId = parsed.gsDeviceId
             airConfig = parsed
+            observePacketVersion(unsigned(parsed.packet[6]))
+            if (currentWifiChannel() == requestedWifiChannel) requestedWifiChannel = null
             return true
         }
 
@@ -72,28 +108,29 @@ internal object ApfpvProtocol {
         fun buildControlDatagrams(): List<ByteArray> {
             val config = airConfig
             val sessionPacket = if (config == null) {
-                makeConnectPacket(activeGsDeviceId)
+                makeConnectPacket(activeGsDeviceId, packetVersion)
             } else {
-                makeConfigPacket(config, activeGsDeviceId)
+                makeConfigPacket(config, activeGsDeviceId, requestedWifiChannel, packetVersion)
             }
-            val payload = sessionPacket.copyOf(GROUND_TRANSPORT_PAYLOAD_SIZE)
+            val payload = sessionPacket.copyOf(groundTransportPayloadSize(packetVersion))
             val toDeviceId = config?.airDeviceId ?: 0
             val first = firstPayload
             if (first == null) {
                 firstPayload = payload
                 return listOf(
-                    makeTransportDatagram(activeGsDeviceId, toDeviceId, blockIndex, 0, payload)
+                    makeTransportDatagram(activeGsDeviceId, toDeviceId, blockIndex, 0, payload, packetVersion)
                 )
             }
 
             val datagrams = listOf(
-                makeTransportDatagram(activeGsDeviceId, toDeviceId, blockIndex, 1, payload),
+                makeTransportDatagram(activeGsDeviceId, toDeviceId, blockIndex, 1, payload, packetVersion),
                 makeTransportDatagram(
                     activeGsDeviceId,
                     toDeviceId,
                     blockIndex,
                     GROUND_FEC_K,
-                    makeGroundParity(first, payload)
+                    makeGroundParity(first, payload),
+                    packetVersion
                 )
             )
             firstPayload = null
@@ -112,7 +149,8 @@ internal object ApfpvProtocol {
 
     fun parseTransportPacket(datagram: ByteArray, length: Int): TransportPacket? {
         if (length < PACKET_HEADER_SIZE || length > datagram.size ||
-            unsigned(datagram[0]) != PACKET_VERSION ||
+            (unsigned(datagram[0]) != PACKET_VERSION &&
+                unsigned(datagram[0]) != LEGACY_PACKET_VERSION) ||
             unsigned(datagram[1]) != PACKET_SIGNATURE
         ) {
             return null
@@ -133,7 +171,8 @@ internal object ApfpvProtocol {
         return TransportPacket(
             blockIndex,
             packetIndex,
-            datagram.copyOfRange(PACKET_HEADER_SIZE, PACKET_HEADER_SIZE + transportSize)
+            datagram.copyOfRange(PACKET_HEADER_SIZE, PACKET_HEADER_SIZE + transportSize),
+            unsigned(datagram[0])
         )
     }
 
@@ -162,7 +201,8 @@ internal object ApfpvProtocol {
     private fun parseAirConfig(data: ByteArray): AirConfig? {
         if (data.size < AIR_HEADER_SIZE ||
             unsigned(data[0]) != CONFIG_PACKET_TYPE ||
-            unsigned(data[6]) != PACKET_VERSION
+            (unsigned(data[6]) != PACKET_VERSION &&
+                unsigned(data[6]) != LEGACY_PACKET_VERSION)
         ) {
             return null
         }
@@ -179,25 +219,31 @@ internal object ApfpvProtocol {
         )
     }
 
-    private fun makeConnectPacket(gsDeviceId: Int): ByteArray =
+    private fun makeConnectPacket(gsDeviceId: Int, version: Int): ByteArray =
         ByteArray(GROUND_HEADER_SIZE).also { packet ->
             packet[0] = GROUND_CONNECT_PACKET_TYPE.toByte()
             writeLe32(packet, 1, packet.size.toLong())
-            packet[6] = PACKET_VERSION.toByte()
+            packet[6] = version.toByte()
             writeLe16(packet, 7, 0)
             writeLe16(packet, 9, gsDeviceId)
             packet[5] = crc8(packet, 0, packet.size).toByte()
         }
 
-    private fun makeConfigPacket(config: AirConfig, gsDeviceId: Int): ByteArray =
+    private fun makeConfigPacket(
+        config: AirConfig, gsDeviceId: Int, wifiChannel: Int?, version: Int
+    ): ByteArray =
         ByteArray(config.packet.size).also { packet ->
             packet[0] = GROUND_CONFIG_PACKET_TYPE.toByte()
             writeLe32(packet, 1, packet.size.toLong())
-            packet[6] = PACKET_VERSION.toByte()
+            packet[6] = version.toByte()
             writeLe16(packet, 7, config.airDeviceId)
             writeLe16(packet, 9, gsDeviceId)
             packet[11] = 0 // ping
             config.packet.copyInto(packet, AIR_HEADER_SIZE, AIR_HEADER_SIZE)
+            val offset = wifiChannelOffset(version)
+            if (wifiChannel != null && offset != null && packet.size > offset) {
+                packet[offset] = wifiChannel.toByte()
+            }
             packet[5] = crc8(packet, 0, packet.size).toByte()
         }
 
@@ -206,24 +252,24 @@ internal object ApfpvProtocol {
         toDeviceId: Int,
         blockIndex: Long,
         packetIndex: Int,
-        payload: ByteArray
-    ): ByteArray = ByteArray(PACKET_HEADER_SIZE + GROUND_TRANSPORT_PAYLOAD_SIZE).also { packet ->
-        packet[0] = PACKET_VERSION.toByte()
+        payload: ByteArray,
+        version: Int
+    ): ByteArray = ByteArray(PACKET_HEADER_SIZE + payload.size).also { packet ->
+        packet[0] = version.toByte()
         packet[1] = PACKET_SIGNATURE.toByte()
         writeLe16(packet, 2, fromDeviceId)
         writeLe16(packet, 4, toDeviceId)
-        writeLe16(packet, 6, GROUND_TRANSPORT_PAYLOAD_SIZE)
+        writeLe16(packet, 6, payload.size)
         packet[8] = blockIndex.toByte()
         packet[9] = (blockIndex ushr 8).toByte()
         packet[10] = (blockIndex ushr 16).toByte()
         packet[11] = packetIndex.toByte()
-        payload.copyInto(packet, PACKET_HEADER_SIZE, 0, GROUND_TRANSPORT_PAYLOAD_SIZE)
+        payload.copyInto(packet, PACKET_HEADER_SIZE)
     }
 
     private fun makeGroundParity(first: ByteArray, second: ByteArray): ByteArray {
-        require(first.size == GROUND_TRANSPORT_PAYLOAD_SIZE)
-        require(second.size == GROUND_TRANSPORT_PAYLOAD_SIZE)
-        return ByteArray(GROUND_TRANSPORT_PAYLOAD_SIZE) { index ->
+        require(first.size == second.size)
+        return ByteArray(first.size) { index ->
             val firstValue = unsigned(first[index])
             val secondValue = unsigned(second[index])
             (multiplyByThree(firstValue) xor multiplyByTwo(secondValue)).toByte()
@@ -234,6 +280,16 @@ internal object ApfpvProtocol {
         if (value and 0x80 == 0) value shl 1 else ((value shl 1) xor 0x11D) and 0xFF
 
     private fun multiplyByThree(value: Int): Int = multiplyByTwo(value) xor value
+
+    private fun groundTransportPayloadSize(version: Int): Int =
+        if (version == LEGACY_PACKET_VERSION) GROUND_TRANSPORT_PAYLOAD_SIZE_V3
+        else GROUND_TRANSPORT_PAYLOAD_SIZE_V5
+
+    private fun wifiChannelOffset(version: Int): Int? = when (version) {
+        LEGACY_PACKET_VERSION -> WIFI_CHANNEL_OFFSET_V3
+        PACKET_VERSION -> WIFI_CHANNEL_OFFSET_V5
+        else -> null
+    }
 
     private fun hasValidCrc(data: ByteArray, offset: Int, size: Int, crcOffset: Int): Boolean {
         val expected = unsigned(data[crcOffset])

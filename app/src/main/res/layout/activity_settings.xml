@@ -400,6 +400,137 @@
 
         </RadioGroup>
 
+        <TextView
+            android:id="@+id/videoChannelLabel"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/spacing_l"
+            android:layout_marginStart="@dimen/spacing_m"
+            android:text="@string/section_video_channel"
+            android:textSize="@dimen/text_size_large"
+            android:textStyle="bold"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/orientationRadioGroup" />
+
+        <LinearLayout
+            android:id="@+id/videoChannelContainer"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_margin="@dimen/spacing_m"
+            android:orientation="vertical"
+            android:padding="@dimen/spacing_s"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/videoChannelLabel">
+
+            <TextView
+                android:id="@+id/videoCurrentChannel"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/video_channel_connecting"
+                android:textSize="@dimen/text_size_normal" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <Spinner
+                    android:id="@+id/videoChannelSpinner"
+                    android:layout_width="0dp"
+                    android:layout_height="@dimen/button_height"
+                    android:layout_weight="1"
+                    android:contentDescription="@string/video_channel_select_description" />
+
+                <Button
+                    android:id="@+id/videoChannelApplyButton"
+                    android:layout_width="wrap_content"
+                    android:layout_height="@dimen/button_height"
+                    android:enabled="false"
+                    android:text="@string/btn_video_channel_apply" />
+            </LinearLayout>
+
+            <TextView
+                android:id="@+id/videoChannelStatus"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/video_channel_instructions"
+                android:textSize="@dimen/text_size_normal" />
+
+            <Button
+                android:id="@+id/videoWifiSettingsButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/spacing_s"
+                android:text="@string/video_channel_open_wifi_settings"
+                android:visibility="gone" />
+
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:layout_marginTop="@dimen/spacing_m"
+                android:background="#666666" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/spacing_m"
+                android:text="@string/video_channel_occupancy_title"
+                android:textSize="@dimen/text_size_large"
+                android:textStyle="bold" />
+
+            <Button
+                android:id="@+id/wifiScanButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/video_channel_scan_button" />
+
+            <TextView
+                android:id="@+id/wifiScanStatus"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/video_channel_scan_prompt"
+                android:textSize="@dimen/text_size_normal" />
+
+            <Button
+                android:id="@+id/wifiRecommendationButton"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:visibility="gone" />
+
+            <TextView
+                android:id="@+id/wifiChannelDetailsToggle"
+                android:layout_width="match_parent"
+                android:layout_height="48dp"
+                android:background="?android:attr/selectableItemBackground"
+                android:clickable="true"
+                android:focusable="true"
+                android:gravity="center_vertical"
+                android:text="@string/video_channel_details_show"
+                android:textSize="@dimen/text_size_normal"
+                android:visibility="gone" />
+
+            <LinearLayout
+                android:id="@+id/wifiChannelDetailsContainer"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:visibility="gone">
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/video_channel_occupancy_note"
+                    android:textSize="@dimen/text_size_normal" />
+
+                <LinearLayout
+                    android:id="@+id/wifiChannelUsageContainer"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical" />
+            </LinearLayout>
+        </LinearLayout>
         <!-- Back Button -->
         <Button
             android:id="@+id/backButton"
@@ -410,7 +541,7 @@
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/orientationRadioGroup" />
+            app:layout_constraintTop_toBottomOf="@id/videoChannelContainer" />
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 </ScrollView>

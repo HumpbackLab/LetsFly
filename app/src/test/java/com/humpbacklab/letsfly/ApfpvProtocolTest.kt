@@ -21,16 +21,16 @@ class ApfpvProtocolTest {
         assertTransportHeader(second[1], 0, 0, 2)
         assertEquals(2, unsigned(first[0][12]))
         assertEquals(11L, readLe32(first[0], 13))
-        assertEquals(3, unsigned(first[0][18]))
+        assertEquals(5, unsigned(first[0][18]))
         assertEquals(0x4C46, readLe16(first[0], 21))
         assertPacketCrc(first[0], 12, 11, 5)
 
-        val expectedParity = ByteArray(64) { index ->
+        val expectedParity = ByteArray(128) { index ->
             val left = unsigned(first[0][12 + index])
             val right = unsigned(second[0][12 + index])
             (multiplyByThree(left) xor multiplyByTwo(right)).toByte()
         }
-        assertArrayEquals(expectedParity, second[1].copyOfRange(12, 76))
+        assertArrayEquals(expectedParity, second[1].copyOfRange(12, 140))
     }
 
     @Test
@@ -42,10 +42,10 @@ class ApfpvProtocolTest {
         val datagram = session.buildControlDatagrams().single()
 
         assertTransportHeader(datagram, 0, 0x1234, 0, fromDeviceId = 1)
-        val payload = datagram.copyOfRange(12, 76)
+        val payload = datagram.copyOfRange(12, 140)
         assertEquals(1, unsigned(payload[0]))
         assertEquals(airConfig.size.toLong(), readLe32(payload, 1))
-        assertEquals(3, unsigned(payload[6]))
+        assertEquals(5, unsigned(payload[6]))
         assertEquals(0x1234, readLe16(payload, 7))
         assertEquals(1, readLe16(payload, 9))
         assertEquals(0, unsigned(payload[11]))
@@ -54,6 +54,102 @@ class ApfpvProtocolTest {
             payload.copyOfRange(12, airConfig.size)
         )
         assertPacketCrc(payload, 0, airConfig.size, 5)
+    }
+
+    @Test
+    fun controlSessionChangesOnlyRequestedWifiChannelInFullConfig() {
+        val session = ApfpvProtocol.ControlSession()
+        val airConfig = makeAirConfig(gsDeviceId = 1, size = 100)
+        airConfig[85] = 7
+        airConfig[7] = crc8(airConfig, 0, airConfig.size, 7).toByte()
+
+        assertTrue(session.acceptAirConfig(airConfig))
+        assertEquals(7, session.currentWifiChannel())
+        session.requestWifiChannel(11)
+        val payload = session.buildControlDatagrams().single().copyOfRange(12, 112)
+
+        assertEquals(11, unsigned(payload[85]))
+        assertArrayEquals(airConfig.copyOfRange(12, 85), payload.copyOfRange(12, 85))
+        assertArrayEquals(airConfig.copyOfRange(86, 100), payload.copyOfRange(86, 100))
+        assertPacketCrc(payload, 0, 100, 5)
+    }
+
+    @Test
+    fun controlSessionUsesLegacyChannelOffset() {
+        val session = ApfpvProtocol.ControlSession()
+        val airConfig = makeAirConfig(gsDeviceId = 1, version = 3)
+        airConfig[44] = 7
+        airConfig[7] = crc8(airConfig, 0, airConfig.size, 7).toByte()
+
+        assertTrue(session.acceptAirConfig(airConfig))
+        assertEquals(7, session.currentWifiChannel())
+        session.requestWifiChannel(11)
+        val payload = session.buildControlDatagrams().single().copyOfRange(12, 69)
+
+        assertEquals(3, unsigned(payload[6]))
+        assertEquals(11, unsigned(payload[44]))
+        assertArrayEquals(airConfig.copyOfRange(12, 44), payload.copyOfRange(12, 44))
+        assertArrayEquals(airConfig.copyOfRange(45, 57), payload.copyOfRange(45, 57))
+        assertPacketCrc(payload, 0, 57, 5)
+    }
+
+    @Test
+    fun unpairedLegacyCameraConfigStartsControlWithOurGsId() {
+        val session = ApfpvProtocol.ControlSession()
+        val airConfig = makeAirConfig(gsDeviceId = 0, version = 3)
+        airConfig[44] = 6
+        airConfig[7] = crc8(airConfig, 0, airConfig.size, 7).toByte()
+
+        assertTrue(session.acceptAirConfig(airConfig))
+        assertEquals(6, session.currentWifiChannel())
+        val datagram = session.buildControlDatagrams().single()
+        assertEquals(76, datagram.size)
+        assertEquals(0x1234, readLe16(datagram, 4))
+        assertEquals(0x4C46, readLe16(datagram, 2))
+        assertEquals(1, unsigned(datagram[12]))
+        assertEquals(0x4C46, readLe16(datagram, 21))
+        assertPacketCrc(datagram, 12, 57, 5)
+    }
+
+    @Test
+    fun controlSessionFollowsLegacyCameraPacketVersion() {
+        val session = ApfpvProtocol.ControlSession()
+        assertEquals(5, unsigned(session.buildControlDatagrams().single()[0]))
+
+        session.observePacketVersion(3)
+        val legacyConnect = session.buildControlDatagrams().single()
+        assertEquals(76, legacyConnect.size)
+        assertEquals(64, readLe16(legacyConnect, 6))
+        assertEquals(3, unsigned(legacyConnect[0]))
+        assertEquals(3, unsigned(legacyConnect[18]))
+        assertPacketCrc(legacyConnect, 12, 11, 5)
+
+        val legacyFec = session.buildControlDatagrams()
+        assertEquals(2, legacyFec.size)
+        assertEquals(76, legacyFec[1].size)
+        val legacyParity = ByteArray(64) { index ->
+            (multiplyByThree(unsigned(legacyConnect[12 + index])) xor
+                multiplyByTwo(unsigned(legacyFec[0][12 + index]))).toByte()
+        }
+        assertArrayEquals(legacyParity, legacyFec[1].copyOfRange(12, 76))
+
+        val legacyConfig = makeAirConfig(gsDeviceId = 1, version = 3)
+        assertTrue(session.acceptAirConfig(legacyConfig))
+        val control = session.buildControlDatagrams().single()
+        assertEquals(76, control.size)
+        assertEquals(3, unsigned(control[0]))
+        assertEquals(3, unsigned(control[18]))
+    }
+
+    @Test
+    fun parserAcceptsCurrentAndLegacyTransportVersions() {
+        val session = ApfpvProtocol.ControlSession()
+        val current = session.buildControlDatagrams().single()
+        assertEquals(5, ApfpvProtocol.parseTransportPacket(current, current.size)?.version)
+
+        session.observePacketVersion(3)
+        val legacy = session.buildControlDatagrams().single()
+        assertEquals(3, ApfpvProtocol.parseTransportPacket(legacy, legacy.size)?.version)
     }
 
     @Test
@@ -100,12 +196,12 @@ class ApfpvProtocolTest {
     private fun fragment(frame: Long, part: Int, last: Boolean, text: String) =
         ApfpvProtocol.VideoFragment(frame, part, last, text.toByteArray())
 
-    private fun makeAirConfig(gsDeviceId: Int): ByteArray {
-        val packet = ByteArray(57)
+    private fun makeAirConfig(gsDeviceId: Int, size: Int = 57, version: Int = 5): ByteArray {
+        val packet = ByteArray(size)
         packet[0] = 3
         writeLe32(packet, 1, packet.size.toLong())
         packet[5] = 9
-        packet[6] = 3
+        packet[6] = version.toByte()
         writeLe16(packet, 8, 0x1234)
         writeLe16(packet, 10, gsDeviceId)
         for (index in 12 until packet.size) {
@@ -122,12 +218,12 @@ class ApfpvProtocolTest {
         packetIndex: Int,
         fromDeviceId: Int = 0x4C46
     ) {
-        assertEquals(76, datagram.size)
-        assertEquals(3, unsigned(datagram[0]))
+        assertEquals(140, datagram.size)
+        assertEquals(5, unsigned(datagram[0]))
         assertEquals(56, unsigned(datagram[1]))
         assertEquals(fromDeviceId, readLe16(datagram, 2))
         assertEquals(toDeviceId, readLe16(datagram, 4))
-        assertEquals(64, readLe16(datagram, 6))
+        assertEquals(128, readLe16(datagram, 6))
         assertEquals(blockIndex, unsigned(datagram[8]))
         assertEquals(packetIndex, unsigned(datagram[11]))
     }

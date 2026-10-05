@@ -13,7 +13,7 @@
             android:layout_height="0dp"
             android:background="@android:color/black"
             android:contentDescription="@string/apfpv_video_description"
-            android:scaleType="fitCenter"
+            android:scaleType="matrix"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
@@ -30,7 +30,7 @@
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent">
 
-        <!-- Left Group: Connection Button Only -->
+        <!-- Left Group: Connection and video controls -->
         <LinearLayout
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
@@ -45,6 +45,30 @@
                     android:layout_marginEnd="@dimen/spacing_s"
                     android:onClick="openSerial"
                     android:text="@string/btn_connect"/>
+
+            <LinearLayout
+                    android:layout_width="40dp"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical">
+
+                <ImageButton
+                        android:id="@+id/videoRotateButton"
+                        android:layout_width="match_parent"
+                        android:layout_height="40dp"
+                        android:background="@drawable/video_control_background"
+                        android:contentDescription="@string/video_rotate_description_default"
+                        android:padding="8dp"
+                        android:src="@drawable/ic_video_rotate"/>
+
+                <ImageButton
+                        android:id="@+id/videoMirrorButton"
+                        android:layout_width="match_parent"
+                        android:layout_height="40dp"
+                        android:background="@drawable/video_control_background"
+                        android:contentDescription="@string/video_mirror_off_description"
+                        android:padding="8dp"
+                        android:src="@drawable/ic_video_mirror"/>
+            </LinearLayout>
 
         </LinearLayout>
 

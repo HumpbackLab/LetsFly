@@ -138,6 +138,7 @@ internal class ApfpvVideoReceiver(private val onFrame: (Bitmap) -> Unit) {
 
             val transportPacket = ApfpvProtocol.parseTransportPacket(datagram, datagram.size)
                 ?: continue
+            session.controlSession.observePacketVersion(transportPacket.version)
             for (decodedPacket in fecDecoder.push(transportPacket)) {
                 if (session.controlSession.acceptAirConfig(decodedPacket.payload)) {
                     if (!session.controlSessionPaired) {
