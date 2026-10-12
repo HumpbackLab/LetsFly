@@ -24,7 +24,7 @@ interface OnJoystickDisabledTouch {
     fun onDisabledTouch()
 }
 
-class Joystick(context: Context, attrs: AttributeSet) : View(context, attrs){
+class Joystick(context: Context, attrs: AttributeSet? = null) : View(context, attrs){
     enum class AxisMode { BOTH, HORIZONTAL, VERTICAL }
     companion object {
         // Default repeat interval for joystick updates in milliseconds
@@ -46,8 +46,8 @@ class Joystick(context: Context, attrs: AttributeSet) : View(context, attrs){
     private var defaultX:Int = 0
     private var defaultY:Int = 0
 
-    private val defaultXPercent:Float
-    private val defaultYPercent:Float
+    private var defaultXPercent:Float
+    private var defaultYPercent:Float
     private val rectangularBoundaryEnabled:Boolean
     private val aspectRatio:Float
 
@@ -58,17 +58,30 @@ class Joystick(context: Context, attrs: AttributeSet) : View(context, attrs){
 
     private val xReturnDefault:Boolean
     private val yReturnDefault:Boolean
+    private var customReturnX: Boolean? = null
+    private var customReturnY: Boolean? = null
+    private var releaseListener: (() -> Unit)? = null
 
     // Flag to control extended Y-axis range
     private var extendedRangeY: Boolean = false
     private var horizontalLocked: Boolean = false
     private var axisMode = AxisMode.BOTH
     private var physicalGeometryEnabled: Boolean = false
+    private var customRectangularGeometry = false
+    private var customTouchShape = false
+    private var customGestureActive = false
     private var physicalVisualScale: Float = 1f
     private var travelRadiusX: Float = 0f
     private var travelRadiusY: Float = 0f
 
     var enable:Boolean=true
+        set(value) {
+            field = value
+            if (!value && customTouchShape) {
+                customGestureActive = false
+                runnable?.let { handler.removeCallbacks(it) }
+            }
+        }
 
     init {
         context.theme.obtainStyledAttributes(
@@ -120,6 +133,32 @@ class Joystick(context: Context, attrs: AttributeSet) : View(context, attrs){
         invalidate()
     }
 
+    fun setCustomReturnBehavior(x: Boolean, y: Boolean) {
+        customReturnX = x
+        customReturnY = y
+    }
+
+    fun setCustomAppearance(rectangular: Boolean, opacity: Int) {
+        customTouchShape = true
+        customRectangularGeometry = rectangular
+        val alpha = (opacity.coerceIn(10, 100) * 255 / 100)
+        mainCirclePaint.alpha = alpha
+        sencondCirclePaint.alpha = alpha
+        requestLayout()
+        invalidate()
+    }
+
+    fun setDefaultPosition(x: Float, y: Float) {
+        defaultXPercent = x.coerceIn(-1f, 1f)
+        defaultYPercent = y.coerceIn(-1f, 1f)
+        defaultX = (centerX + defaultXPercent * travelRadiusX).toInt()
+        defaultY = (centerY - defaultYPercent * travelRadiusY).toInt()
+    }
+
+    fun setOnReleaseListener(listener: () -> Unit) {
+        releaseListener = listener
+    }
+
     /** Use an independently calibrated X/Y travel area instead of the XML shape. */
     fun setPhysicalGeometryEnabled(enabled: Boolean, visualScale: Float = 1f) {
         val safeVisualScale = visualScale.coerceAtLeast(1f)
@@ -156,7 +195,8 @@ class Joystick(context: Context, attrs: AttributeSet) : View(context, attrs){
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
         // setting the measured values to resize the view to a certain width and
         // height
-        if (axisMode != AxisMode.BOTH || rectangularBoundaryEnabled || physicalGeometryEnabled) {
+        if (axisMode != AxisMode.BOTH || rectangularBoundaryEnabled ||
+            physicalGeometryEnabled || customRectangularGeometry) {
             // For rectangular boundary, use actual requested dimensions
             val width = measure(widthMeasureSpec)
             val height = measure(heightMeasureSpec)
@@ -183,9 +223,10 @@ class Joystick(context: Context, attrs: AttributeSet) : View(context, attrs){
 
         travelRadiusX = if (physicalGeometryEnabled) {
             xNew * 0.375f / physicalVisualScale
-        } else joystickRadius.toFloat()
+        } else if (customRectangularGeometry) xNew * .375f else joystickRadius.toFloat()
         travelRadiusY = when {
             physicalGeometryEnabled -> yNew * 0.375f / physicalVisualScale
+            customRectangularGeometry -> yNew * .375f
             rectangularBoundaryEnabled -> joystickRadius * aspectRatio
             else -> joystickRadius.toFloat()
         }
@@ -222,7 +263,8 @@ class Joystick(context: Context, attrs: AttributeSet) : View(context, attrs){
                         centerX + rail, centerY + travelRadiusY + rail, rail, rail, mainCirclePaint)
                     drawLine(centerX, centerY - travelRadiusY, centerX, centerY + travelRadiusY, sencondCirclePaint)
                 }
-            } else if (rectangularBoundaryEnabled || physicalGeometryEnabled) {
+            } else if (rectangularBoundaryEnabled || physicalGeometryEnabled ||
+                customRectangularGeometry) {
                 // Draw elliptical boundary for rectangular mode
                 val rectWidth = if (physicalGeometryEnabled) travelRadiusX * physicalVisualScale else travelRadiusX
                 val rectHeight = if (physicalGeometryEnabled) travelRadiusY * physicalVisualScale else travelRadiusY
@@ -278,6 +320,23 @@ class Joystick(context: Context, attrs: AttributeSet) : View(context, attrs){
     }
     override fun onTouchEvent(event: MotionEvent): Boolean {
 
+        if (customTouchShape && event.actionMasked != MotionEvent.ACTION_DOWN &&
+            !customGestureActive) return true
+
+        if (customTouchShape && event.actionMasked == MotionEvent.ACTION_DOWN) {
+            val type = when (axisMode) {
+                AxisMode.HORIZONTAL -> CustomControlType.HORIZONTAL
+                AxisMode.VERTICAL -> CustomControlType.VERTICAL
+                else -> CustomControlType.JOYSTICK
+            }
+            val outline = CustomControlGeometry.area(0, type, centerX, centerY,
+                width.toFloat(), height.toFloat(), resources.displayMetrics.density).outline
+            val dx = event.x - xPosition
+            val dy = event.y - yPosition
+            if (!CustomControlGeometry.contains(outline, event.x, event.y) &&
+                dx * dx + dy * dy > buttonRadius.toFloat() * buttonRadius) return false
+        }
+
         if(!enable){
             // Notify listeners that joystick is disabled and was touched
             if (event.action == MotionEvent.ACTION_DOWN) {
@@ -287,6 +346,9 @@ class Joystick(context: Context, attrs: AttributeSet) : View(context, attrs){
             }
             return true
         }
+
+        if (customTouchShape && event.actionMasked == MotionEvent.ACTION_DOWN)
+            customGestureActive = true
 
         xPosition = event.x.toInt()
         yPosition = event.y.toInt()
@@ -316,7 +378,8 @@ class Joystick(context: Context, attrs: AttributeSet) : View(context, attrs){
             } else if(xPosition < centerX - joystickRadius) {
                 xPosition = (centerX - joystickRadius).toInt()
             }
-        } else if (axisMode != AxisMode.BOTH || rectangularBoundaryEnabled || physicalGeometryEnabled) {
+        } else if (axisMode != AxisMode.BOTH || rectangularBoundaryEnabled ||
+            physicalGeometryEnabled || customRectangularGeometry) {
             // Use rectangular boundary limits
             val halfWidth = travelRadiusX.toInt()
             val halfHeight = travelRadiusY.toInt()
@@ -355,11 +418,12 @@ class Joystick(context: Context, attrs: AttributeSet) : View(context, attrs){
 
         invalidate()
         if (event.action == MotionEvent.ACTION_UP || event.action == MotionEvent.ACTION_CANCEL) {
+            customGestureActive = false
             // Apply default positions based on settings
-            if(xReturnDefault || axisMode != AxisMode.BOTH){
+            if(customReturnX ?: (xReturnDefault || axisMode != AxisMode.BOTH)){
                 xPosition = defaultX
             }
-            if(yReturnDefault || axisMode != AxisMode.BOTH){
+            if(customReturnY ?: (yReturnDefault || axisMode != AxisMode.BOTH)){
                 yPosition = defaultY
             }
 
@@ -368,6 +432,7 @@ class Joystick(context: Context, attrs: AttributeSet) : View(context, attrs){
                 handler.removeCallbacks(runnable!!)
             }
             listener?.onJoystickValueChanged(getOutX(),getOutY())
+            releaseListener?.invoke()
             invalidate()
 
         }else if (event.action==MotionEvent.ACTION_DOWN && listener!=null){
@@ -384,6 +449,7 @@ class Joystick(context: Context, attrs: AttributeSet) : View(context, attrs){
     }
 
     override fun onDetachedFromWindow() {
+        customGestureActive = false
         super.onDetachedFromWindow()
         // Clean up the handler to prevent memory leaks
         if (runnable != null) {
