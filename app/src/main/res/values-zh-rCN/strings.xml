@@ -156,4 +156,12 @@
     <string name="orientation_single_hand">single_hand</string>
     <string name="orientation_dual_hand">dual_hand</string>
     <string name="orientation_dual_hand_airplane">dual_hand_airplane</string>
+    <string name="battery_unavailable">电池 -- V</string>
+    <string name="battery_voltage">%1$.1f V</string>
+    <string name="battery_voltage_percent">%1$.1f V · %2$d%%</string>
+    <string name="battery_voltage_description">模型电池电压：%1$.1f 伏</string>
+    <string name="battery_percent_description">模型电池：%1$.1f 伏，剩余电量 %2$d%%</string>
+    <string name="battery_disconnected_description">电池遥测：串口未连接</string>
+    <string name="battery_waiting_description">电池遥测：等待数据</string>
+    <string name="battery_stale_description">电池遥测：数据已过期</string>
 </resources>

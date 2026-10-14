@@ -19,6 +19,7 @@ import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.os.SystemClock
 import android.view.KeyEvent
 import android.view.View
 import android.view.ViewGroup
@@ -112,6 +113,14 @@ class MainActivity : AppCompatActivity() {
 
     private lateinit var serialDriver: CH34xUARTDriver
     private var serialOpened = false
+    private var batteryTelemetry: CrsfBatteryTelemetry? = null
+    private val batteryHandler = Handler(Looper.getMainLooper())
+    private val batteryDisplayUpdater = object : Runnable {
+        override fun run() {
+            updateBatteryTelemetryView()
+            batteryHandler.postDelayed(this, 500L)
+        }
+    }
 
     private lateinit var bytes: ByteArray
     private val crsfData: CRSFData = CRSFData()
@@ -488,9 +497,12 @@ class MainActivity : AppCompatActivity() {
         apfpvVideoReceiver.start()
         // Update orientation when activity resumes (e.g., when returning from settings)
         setInitialOrientation()
+        batteryHandler.removeCallbacks(batteryDisplayUpdater)
+        batteryHandler.post(batteryDisplayUpdater)
     }
 
     override fun onPause() {
+        batteryHandler.removeCallbacks(batteryDisplayUpdater)
         if (isCustomMode()) {
             customSafetyHold = true
             armSwitch.isChecked = false
@@ -510,6 +522,10 @@ class MainActivity : AppCompatActivity() {
     }
 
     override fun onDestroy() {
+        serialDriver.setReadListener(null)
+        serialDriver.setCloseListener(null)
+        batteryTelemetry = null
+        batteryHandler.removeCallbacksAndMessages(null)
         customHandler.removeCallbacks(customSender)
         sharedPreferences.unregisterOnSharedPreferenceChangeListener(customPreferenceListener)
         super.onDestroy()
@@ -919,8 +935,54 @@ class MainActivity : AppCompatActivity() {
         return result
     }
 
+    private fun prepareBatteryTelemetry() {
+        val telemetry = CrsfBatteryTelemetry()
+        batteryTelemetry = telemetry
+        serialDriver.setReadListener { data ->
+            telemetry.feed(data, SystemClock.elapsedRealtime())
+        }
+        serialDriver.setCloseListener {
+            batteryHandler.post {
+                // Ignore a queued disconnect from an earlier serial session.
+                if (batteryTelemetry !== telemetry) return@post
+                serialOpened = false
+                batteryTelemetry = null
+                resetCustomSerialState()
+                findViewById<Button>(R.id.openSerialButton).isEnabled = true
+                updateBatteryTelemetryView()
+            }
+        }
+    }
+
+    private fun updateBatteryTelemetryView() {
+        val view = findViewById<TextView>(R.id.batteryTelemetryView)
+        val reading = batteryTelemetry?.latest()
+        val available = serialOpened && reading?.isFresh(SystemClock.elapsedRealtime()) == true
+        val text: String
+        val description: String
+        if (available && reading != null) {
+            val voltage = reading.voltageDecivolts / 10.0
+            val percent = reading.remainingPercent
+            text = if (percent == null) getString(R.string.battery_voltage, voltage)
+                else getString(R.string.battery_voltage_percent, voltage, percent)
+            description = if (percent == null)
+                getString(R.string.battery_voltage_description, voltage)
+            else getString(R.string.battery_percent_description, voltage, percent)
+        } else {
+            text = getString(R.string.battery_unavailable)
+            description = getString(when {
+                !serialOpened -> R.string.battery_disconnected_description
+                reading == null -> R.string.battery_waiting_description
+                else -> R.string.battery_stale_description
+            })
+        }
+        if (view.text.toString() != text) view.text = text
+        if (view.contentDescription != description) view.contentDescription = description
+    }
+
     private fun openUartDevice(): Boolean {
         resetCustomSerialState()
+        prepareBatteryTelemetry()
         val ret = serialDriver.resumeUsbList()
         if (ret == -1) {
             debugInfo(getString(R.string.msg_no_uart_device))
@@ -960,6 +1022,8 @@ class MainActivity : AppCompatActivity() {
         if (ret < 0) {
             debugInfo(getString(R.string.msg_uart_disconnected))
             serialOpened = false
+            batteryTelemetry = null
+            updateBatteryTelemetryView()
             resetCustomSerialState()
             findViewById<Button>(R.id.openSerialButton).isEnabled = true
             try {

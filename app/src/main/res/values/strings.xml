@@ -156,4 +156,12 @@
     <string name="orientation_single_hand">single_hand</string>
     <string name="orientation_dual_hand">dual_hand</string>
     <string name="orientation_dual_hand_airplane">dual_hand_airplane</string>
+    <string name="battery_unavailable">Battery -- V</string>
+    <string name="battery_voltage">%1$.1f V</string>
+    <string name="battery_voltage_percent">%1$.1f V · %2$d%%</string>
+    <string name="battery_voltage_description">Model battery voltage: %1$.1f volts</string>
+    <string name="battery_percent_description">Model battery: %1$.1f volts, %2$d percent remaining</string>
+    <string name="battery_disconnected_description">Battery telemetry: serial disconnected</string>
+    <string name="battery_waiting_description">Battery telemetry: waiting for data</string>
+    <string name="battery_stale_description">Battery telemetry: data expired</string>
 </resources>

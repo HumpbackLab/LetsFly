@@ -35,7 +35,8 @@ internal object CustomControlViews {
     fun fixedButtonBounds(root: View, canvas: View): List<CustomBounds> {
         val origin = IntArray(2)
         canvas.getLocationInWindow(origin)
-        return listOf(R.id.openSerialButton, R.id.videoRotateButton, R.id.videoMirrorButton,
+        return listOf(R.id.openSerialButton, R.id.batteryTelemetryView,
+            R.id.videoRotateButton, R.id.videoMirrorButton,
             R.id.settingsButton, R.id.switchArm).mapNotNull { id ->
             val view = root.findViewById<View>(id) ?: return@mapNotNull null
             if (view.visibility != View.VISIBLE || view.width <= 0 || view.height <= 0)
