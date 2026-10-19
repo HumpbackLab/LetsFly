@@ -647,6 +647,8 @@ class CustomLayoutEditorActivity : AppCompatActivity() {
         label(container, getString(R.string.custom_return_value))
         val returnValue = number(axis.returnValue)
         container.addView(returnValue)
+        returnValue.isEnabled = auto.isChecked
+        auto.setOnCheckedChangeListener { _, checked -> returnValue.isEnabled = checked }
         addDisarmHint(container, channel, R.string.custom_primary_return_hint)
         return AxisFields(channel, low, high, auto, returnValue)
     }

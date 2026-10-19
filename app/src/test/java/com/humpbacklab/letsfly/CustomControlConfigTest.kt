@@ -173,7 +173,7 @@ class CustomControlConfigTest {
         state.reset(false)
         state.move(1, -1f, 1f)
         state.advanceButton(99)
-        assertArrayEquals(intArrayOf(827, 1155, 991, 663, 172, 172, 172, 172,
+        assertArrayEquals(intArrayOf(827, 1155, 172, 663, 172, 172, 172, 172,
             1073, 172, 172, 172, 172, 172, 172, 1368), packedChannels())
     }
 
@@ -241,7 +241,7 @@ class CustomControlConfigTest {
         assertEquals(0, buttonState.value(3))
     }
 
-    @Test fun centeredThrottleStartsAndDisarmsAtNeutralWithOrWithoutAutomaticReturn() {
+    @Test fun throttleDisarmUsesReturnOrDefaultAccordingToAutomaticReturn() {
         val base = CustomControlConfig.default()
         for (autoReturn in listOf(false, true)) {
             for (throttleOnSecondAxis in listOf(false, true)) {
@@ -251,24 +251,25 @@ class CustomControlConfigTest {
                     if (throttleOnSecondAxis) auxiliary else throttle,
                     if (throttleOnSecondAxis) throttle else auxiliary)
                 val config = base.copy(controls = listOf(joystick),
-                    defaults = base.defaults.toMutableList().also { it[2] = 0 })
+                    defaults = base.defaults.toMutableList().also { it[2] = 45 })
                 val state = CustomControlState(CustomControlConfig.decode(config.encode())!!)
-                assertEquals(50, state.value(3))
+                val parked = if (autoReturn) 50 else 45
+                assertEquals(parked, state.value(3))
                 state.move(1, 1f, 1f)
-                assertEquals(50, state.value(3))
+                assertEquals(parked, state.value(3))
                 state.setArmed(true)
-                assertEquals(50, state.value(3))
+                assertEquals(parked, state.value(3))
                 state.move(1, 1f, 1f)
                 assertEquals(100, state.value(3))
                 state.release(1)
                 assertEquals(if (autoReturn) 50 else 100, state.value(3))
                 state.setArmed(false)
-                assertEquals(50, state.value(3))
+                assertEquals(parked, state.value(3))
                 assertEquals(100, state.value(7))
                 state.setArmed(true)
-                assertEquals(50, state.value(3))
+                assertEquals(parked, state.value(3))
                 state.reset(false)
-                assertEquals(50, state.value(3))
+                assertEquals(parked, state.value(3))
                 assertEquals(0, state.value(7))
             }
         }
@@ -278,7 +279,7 @@ class CustomControlConfigTest {
         val base = CustomControlConfig.default()
         for (channel in 1..4) {
             val button = CustomControl(1, CustomControlType.BUTTON, .5f, .5f,
-                CustomAxis(channel), offValue = 45, onValue = 100)
+                CustomAxis(channel, autoReturn = false), offValue = 45, onValue = 100)
             val state = CustomControlState(base.copy(controls = listOf(button)))
             assertEquals(45, state.value(channel))
             assertEquals(0, state.advanceButton(1))
@@ -307,7 +308,7 @@ class CustomControlConfigTest {
         }
     }
 
-    @Test fun primaryAxesLockToReturnValuesAcrossArmingWithoutResettingAuxiliaries() {
+    @Test fun primaryAxesUseReturnOrDefaultAcrossArmingWithoutResettingAuxiliaries() {
         val base = CustomControlConfig.default()
         for (autoReturn in listOf(false, true)) {
             val config = base.copy(controls = listOf(
@@ -319,7 +320,8 @@ class CustomControlConfigTest {
                     CustomAxis(3, autoReturn = autoReturn, returnValue = 50)),
                 CustomControl(3, CustomControlType.BUTTON, .5f, .5f, CustomAxis(7))))
             val state = CustomControlState(CustomControlConfig.decode(config.encode())!!)
-            val neutral = intArrayOf(20, 40, 50, 70)
+            val neutral = if (autoReturn) intArrayOf(20, 40, 50, 70)
+                else intArrayOf(50, 50, 0, 50)
             assertArrayEquals(neutral, state.snapshot().take(4).toIntArray())
             state.advanceButton(3)
             state.setArmed(true)
@@ -346,5 +348,34 @@ class CustomControlConfigTest {
             assertArrayEquals(neutral, state.snapshot().take(4).toIntArray())
             assertEquals(0, state.value(7))
         }
+    }
+
+    @Test fun mixedAutomaticReturnSettingsChooseDisarmedValuesPerAxis() {
+        val base = CustomControlConfig.default()
+        val config = base.copy(
+            defaults = base.defaults.toMutableList().also { it[2] = 50 },
+            controls = listOf(
+                CustomControl(1, CustomControlType.JOYSTICK, .2f, .5f,
+                    CustomAxis(1, autoReturn = true, returnValue = 20),
+                    CustomAxis(2, autoReturn = false, returnValue = 40)),
+                CustomControl(2, CustomControlType.JOYSTICK, .8f, .5f,
+                    CustomAxis(4, autoReturn = true, returnValue = 70),
+                    CustomAxis(3, autoReturn = false, returnValue = 0)),
+                CustomControl(3, CustomControlType.BUTTON, .5f, .5f, CustomAxis(7))))
+        val state = CustomControlState(CustomControlConfig.decode(config.encode())!!)
+        val parked = intArrayOf(20, 50, 50, 70)
+        assertArrayEquals(parked, state.snapshot().take(4).toIntArray())
+        state.advanceButton(3)
+        state.setArmed(true)
+        state.move(1, 1f, -1f)
+        state.move(2, -1f, 1f)
+        state.release(1)
+        state.release(2)
+        assertArrayEquals(intArrayOf(20, 0, 100, 70), state.snapshot().take(4).toIntArray())
+        state.setArmed(false)
+        assertArrayEquals(parked, state.snapshot().take(4).toIntArray())
+        assertEquals(100, state.value(7))
+        state.setArmed(true)
+        assertArrayEquals(parked, state.snapshot().take(4).toIntArray())
     }
 }

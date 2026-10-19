@@ -159,11 +159,15 @@ internal data class CustomControlConfig(
 internal class CustomControlState(private val config: CustomControlConfig) {
     private val values = config.defaults.toMutableList()
     private val buttonPositions = mutableMapOf<Int, Int>()
-    private val primaryReturnValues = config.defaults.take(4).toIntArray().apply {
+    private val primaryDisarmedValues = config.defaults.take(4).toIntArray().apply {
         for (control in config.controls) {
             for (axis in listOfNotNull(control.first, control.second)) {
-                if (axis.channel in 1..4) this[axis.channel - 1] =
-                    if (control.type == CustomControlType.BUTTON) control.offValue else axis.returnValue
+                if (axis.channel !in 1..4) continue
+                this[axis.channel - 1] = when {
+                    control.type == CustomControlType.BUTTON -> control.offValue
+                    axis.autoReturn -> axis.returnValue
+                    else -> config.defaults[axis.channel - 1]
+                }
             }
         }
     }
@@ -181,9 +185,9 @@ internal class CustomControlState(private val config: CustomControlConfig) {
     fun setArmed(arm: Boolean) {
         armed = arm
         // Keep auxiliary switch/axis state across arming, especially Wi-Fi CH7.
-        // Primary controls start at their stop/neutral values even when
-        // automatic return on release is disabled.
-        for (index in 0..3) values[index] = primaryReturnValues[index]
+        // Primary axes use return values when automatic return is enabled,
+        // and channel defaults otherwise. Buttons use their off values.
+        for (index in 0..3) values[index] = primaryDisarmedValues[index]
         values[4] = if (arm) 100 else 0
         config.controls.filter { (it.first?.channel ?: 0) < 6 }
             .forEach { buttonPositions.remove(it.id) }
