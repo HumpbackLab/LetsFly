@@ -17,6 +17,9 @@ import android.hardware.SensorManager
 import android.hardware.usb.UsbManager
 import android.os.Build
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
+import android.os.SystemClock
 import android.view.KeyEvent
 import android.view.View
 import android.view.ViewGroup
@@ -65,6 +68,7 @@ class MainActivity : AppCompatActivity() {
         const val ORIENTATION_DUAL_HAND = "dual_hand"
         const val ORIENTATION_DUAL_HAND_AIRPLANE = "dual_hand_airplane"
         const val ORIENTATION_RC_CAR = "rc_car"
+        const val ORIENTATION_CUSTOM = "custom"
 
         const val KEY_PHYSICAL_CALIBRATION_REQUESTED = "physical_joystick_calibration_requested"
         private const val KEY_PHYSICAL_CALIBRATED = "physical_joystick_calibrated"
@@ -109,6 +113,14 @@ class MainActivity : AppCompatActivity() {
 
     private lateinit var serialDriver: CH34xUARTDriver
     private var serialOpened = false
+    private var batteryTelemetry: CrsfBatteryTelemetry? = null
+    private val batteryHandler = Handler(Looper.getMainLooper())
+    private val batteryDisplayUpdater = object : Runnable {
+        override fun run() {
+            updateBatteryTelemetryView()
+            batteryHandler.postDelayed(this, 500L)
+        }
+    }
 
     private lateinit var bytes: ByteArray
     private val crsfData: CRSFData = CRSFData()
@@ -117,6 +129,74 @@ class MainActivity : AppCompatActivity() {
     private val uiUpdateInterval = 50L // Limit UI updates to every 50ms (20Hz)
 
     private lateinit var sharedPreferences: android.content.SharedPreferences
+    private lateinit var customConfig: CustomControlConfig
+    private lateinit var customState: CustomControlState
+    private var customCanvas: FrameLayout? = null
+    private var customSafetyHold = false
+    private val customHandler = Handler(Looper.getMainLooper())
+    private var customSenderRunning = false
+    private val customPreferenceListener = android.content.SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
+        if (key == "orientation_mode") runOnUiThread {
+            if (isCustomMode()) {
+                armSwitch.isChecked = false
+                customState.reset(false)
+            }
+            syncCustomSender()
+        }
+    }
+    private val customSender = object : Runnable {
+        override fun run() {
+            val custom = isCustomMode()
+            if (!custom && !customSafetyHold) {
+                customSenderRunning = false
+                return
+            }
+            if (custom || customSafetyHold) {
+                if (custom && activeControlMode != ORIENTATION_CUSTOM && armSwitch.isChecked) {
+                    armSwitch.isChecked = false
+                }
+                updateCustomChannelValues()
+                if (serialOpened) {
+                    bytes = crsfData.pack().toByteArray()
+                    uartWrite(bytes, 26)
+                }
+                val now = System.currentTimeMillis()
+                if (custom && now - lastUpdateTime >= uiUpdateInterval) {
+                    lastUpdateTime = now
+                    findViewById<TextView>(R.id.testView)?.text =
+                        if (sharedPreferences.getBoolean("show_values", false))
+                            crsfData.data_array.joinToString("  ") else ""
+                }
+            }
+            customHandler.postDelayed(this, 20L)
+        }
+    }
+
+    private fun updateCustomChannelValues() {
+        val values = customState.snapshot()
+        for (index in values.indices) {
+            crsfData.data_array[index] = duty2CRSF(values[index] / 100f)
+        }
+    }
+
+    private fun resetCustomSerialState() {
+        if (!isCustomMode() && !customSafetyHold) return
+        armSwitch.isChecked = false
+        customState.reset(false)
+        updateCustomControlViews()
+        // Connection setup sends immediately, before the next scheduled custom frame.
+        updateCustomChannelValues()
+    }
+
+    private fun syncCustomSender() {
+        if ((isCustomMode() || customSafetyHold) && !customSenderRunning) {
+            customSenderRunning = true
+            customHandler.post(customSender)
+        } else if (!isCustomMode() && !customSafetyHold && customSenderRunning) {
+            customHandler.removeCallbacks(customSender)
+            customSenderRunning = false
+        }
+    }
 
     private lateinit var videoView: ImageView
     private lateinit var videoRotateButton: ImageButton
@@ -214,6 +294,10 @@ class MainActivity : AppCompatActivity() {
 
         // Initialize shared preferences
         sharedPreferences = getSharedPreferences("rc_controller_prefs", Context.MODE_PRIVATE)
+        sharedPreferences.registerOnSharedPreferenceChangeListener(customPreferenceListener)
+        customConfig = CustomControlConfig.load(sharedPreferences)
+        customState = CustomControlState(customConfig)
+        customCanvas = findViewById(R.id.customControlCanvas)
 
         val sensorManager = getSystemService(Context.SENSOR_SERVICE) as SensorManager
         val sensor: Sensor? = sensorManager.getDefaultSensor(Sensor.TYPE_GAME_ROTATION_VECTOR)
@@ -237,6 +321,7 @@ class MainActivity : AppCompatActivity() {
         ch8SwitchControl = createThreePositionSwitch(R.id.switchCH8, SwitchPosition.LOW, 7)  // CH8 corresponds to index 7
 
         val loadLeftJoyStick = loadLeft@{ x:Float, y:Float ->
+            if (isCustomMode() || customSafetyHold) return@loadLeft
             val isGyroEnabled = sharedPreferences.getBoolean("gyro_enabled", false) && !isRcCarMode()
             if(!isGyroEnabled){
                 if (isRcCarMode()) {
@@ -260,6 +345,7 @@ class MainActivity : AppCompatActivity() {
         }
 
         val loadRightJoyStick = loadRight@{ x:Float, y:Float ->
+            if (isCustomMode() || customSafetyHold) return@loadRight
             val isGyroEnabled = sharedPreferences.getBoolean("gyro_enabled", false) && !isRcCarMode()
             if (!isGyroEnabled){
                 if (isRcCarMode()) {
@@ -310,11 +396,17 @@ class MainActivity : AppCompatActivity() {
         // Add listeners to switches for visual feedback
         armSwitch.setOnCheckedChangeListener { _, isChecked ->
             updateSwitchVisualFeedback(armSwitch, isChecked)
+            if (isCustomMode() || customSafetyHold) {
+                customState.setArmed(isChecked && !customSafetyHold)
+                updateCustomControlViews()
+                return@setOnCheckedChangeListener
+            }
             // Enable the controls when armed.
             leftJoyStick.enable = isChecked
             if (isRcCarMode()) rightJoyStick.enable = isChecked
             // When disarmed, reset aircraft throttle to minimum or car controls to center.
             if (!isChecked) {
+                thrust = 0f
                 leftJoyStick.setXY(0f, if (isRcCarMode()) 0f else -1.0f)
                 loadLeftJoyStick(leftJoyStick.getOutX(), leftJoyStick.getOutY())
                 if (isRcCarMode()) {
@@ -348,6 +440,7 @@ class MainActivity : AppCompatActivity() {
 
         // Set initial joystick positions after view layout is complete
         leftJoyStick.post {
+            if (isCustomMode()) return@post
             applySavedPhysicalJoystickLayout()
             leftJoyStick.setXY(0f, if (isRcCarMode()) 0f else -1.0f)
             rightJoyStick.setXY(0f, 0f)
@@ -364,13 +457,15 @@ class MainActivity : AppCompatActivity() {
 
         // Set initial orientation based on settings
         setInitialOrientation()
+        syncCustomSender()
     }
 
     private fun setInitialOrientation() {
         // Check shared preferences for the orientation mode
         val orientationMode = sharedPreferences.getString("orientation_mode", ORIENTATION_SINGLE_HAND)
         when (orientationMode) {
-            ORIENTATION_DUAL_HAND, ORIENTATION_DUAL_HAND_AIRPLANE, ORIENTATION_RC_CAR -> {
+            ORIENTATION_DUAL_HAND, ORIENTATION_DUAL_HAND_AIRPLANE, ORIENTATION_RC_CAR,
+            ORIENTATION_CUSTOM -> {
                 requestedOrientation = android.content.pm.ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
             }
             else -> { // Default to single hand (portrait)
@@ -381,7 +476,17 @@ class MainActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
+        customSafetyHold = false
+        if (isCustomMode()) {
+            val savedConfig = CustomControlConfig.load(sharedPreferences)
+            if (savedConfig != customConfig) {
+                customConfig = savedConfig
+                customState = CustomControlState(customConfig)
+            }
+            armSwitch.isChecked = false
+        }
         applyControlModeDefaults()
+        syncCustomSender()
         initializeJoystickStates()
         leftJoyStick.post {
             applySavedPhysicalJoystickLayout()
@@ -396,9 +501,19 @@ class MainActivity : AppCompatActivity() {
         apfpvVideoReceiver.start()
         // Update orientation when activity resumes (e.g., when returning from settings)
         setInitialOrientation()
+        batteryHandler.removeCallbacks(batteryDisplayUpdater)
+        batteryHandler.post(batteryDisplayUpdater)
     }
 
     override fun onPause() {
+        batteryHandler.removeCallbacks(batteryDisplayUpdater)
+        if (isCustomMode()) {
+            customSafetyHold = true
+            armSwitch.isChecked = false
+            customState.setArmed(false)
+            updateCustomControlViews()
+            syncCustomSender()
+        }
         acceptingVideoFrames.set(false)
         apfpvVideoReceiver.stop()
         videoView.removeCallbacks(displayLatestVideoFrame)
@@ -408,6 +523,16 @@ class MainActivity : AppCompatActivity() {
         videoWidth = 0
         videoHeight = 0
         super.onPause()
+    }
+
+    override fun onDestroy() {
+        serialDriver.setReadListener(null)
+        serialDriver.setCloseListener(null)
+        batteryTelemetry = null
+        batteryHandler.removeCallbacksAndMessages(null)
+        customHandler.removeCallbacks(customSender)
+        sharedPreferences.unregisterOnSharedPreferenceChangeListener(customPreferenceListener)
+        super.onDestroy()
     }
 
     private fun updateVideoControls() {
@@ -451,6 +576,11 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun initializeJoystickStates() {
+        if (isCustomMode()) {
+            leftJoyStick.enable = false
+            rightJoyStick.enable = false
+            return
+        }
         val isGyroEnabled = sharedPreferences.getBoolean("gyro_enabled", false) && !isRcCarMode()
         if (isGyroEnabled) {
             leftJoyStick.enable = false
@@ -525,7 +655,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun applySavedPhysicalJoystickLayout() {
-        if (isRcCarMode() || resources.configuration.orientation != Configuration.ORIENTATION_LANDSCAPE ||
+        if (isCustomMode() || isRcCarMode() || resources.configuration.orientation != Configuration.ORIENTATION_LANDSCAPE ||
             !sharedPreferences.getBoolean(KEY_PHYSICAL_CALIBRATED, false)
         ) {
             resetPhysicalJoystickLayout()
@@ -594,10 +724,99 @@ class MainActivity : AppCompatActivity() {
     private fun isRcCarMode(): Boolean =
         sharedPreferences.getString("orientation_mode", ORIENTATION_SINGLE_HAND) == ORIENTATION_RC_CAR
 
+    private fun isCustomMode(): Boolean =
+        ::sharedPreferences.isInitialized &&
+            sharedPreferences.getString("orientation_mode", ORIENTATION_SINGLE_HAND) == ORIENTATION_CUSTOM
+
+    private fun renderCustomControls() {
+        val canvas = customCanvas ?: return
+        CustomControlViews.whenCanvasReady(canvas) {
+            if (!isCustomMode() || canvas.visibility != View.VISIBLE) return@whenCanvasReady
+            customConfig = customConfig.asFullScreen(canvas.height,
+                findViewById<View>(R.id.topControlsContainer).height)
+            canvas.removeAllViews()
+            for (control in customConfig.controls) {
+                val view = CustomControlViews.create(this, control)
+                CustomControlViews.place(canvas, view, control) {
+                    updateCustomControlView(view, control)
+                }
+                if (view is Joystick) {
+                    view.enable = !customSafetyHold && customState.isControlEnabled(control)
+                    view.setOnJoystickMoveListener(object : OnJoystickMoveListener {
+                        override fun onJoystickValueChanged(x: Float, y: Float) {
+                            customState.move(control.id, x, y)
+                            if (!customState.armed)
+                                updateCustomControlView(view, control, lockedAxesOnly = true)
+                        }
+                    }, 10)
+                    view.setOnReleaseListener { customState.release(control.id) }
+                } else if (view is Button) {
+                    view.isEnabled = !customSafetyHold && customState.isControlEnabled(control)
+                    view.setOnClickListener {
+                        CustomControlViews.styleButton(view, control,
+                            customState.advanceButton(control.id))
+                    }
+                }
+            }
+        }
+    }
+
+    private fun updateCustomControlViews() {
+        val canvas = customCanvas ?: return
+        for (index in customConfig.controls.indices) {
+            val control = customConfig.controls[index]
+            val view = canvas.getChildAt(index) ?: continue
+            updateCustomControlView(view, control)
+        }
+    }
+
+    private fun updateCustomControlView(view: View, control: CustomControl,
+        lockedAxesOnly: Boolean = false) {
+        if (view is Joystick) {
+            view.enable = !customSafetyHold && customState.isControlEnabled(control)
+            val xAxis = if (control.type == CustomControlType.VERTICAL) null else control.first
+            val yAxis = control.second ?: if (control.type == CustomControlType.VERTICAL)
+                control.first else null
+            fun current(axis: CustomAxis?) = axis?.position(customState.value(axis.channel)) ?: 0f
+            fun reset(axis: CustomAxis?) = if (axis == null) 0f else
+                axis.position(if (axis.autoReturn) axis.returnValue else customState.value(axis.channel))
+            view.setDefaultPosition(reset(xAxis), reset(yAxis))
+            // Do not quantize an active auxiliary axis back into its pixel position
+            // on every polling callback: repeated truncation can make it drift.
+            view.setXY(current(xAxis), current(yAxis),
+                updateX = !lockedAxesOnly || xAxis?.channel in 1..4,
+                updateY = !lockedAxesOnly || yAxis?.channel in 1..4)
+        } else if (view is Button) {
+            view.isEnabled = !customSafetyHold && customState.isControlEnabled(control)
+            CustomControlViews.styleButton(view, control, customState.buttonPosition(control.id))
+        }
+    }
+
     private fun applyControlModeDefaults() {
         val mode = sharedPreferences.getString("orientation_mode", ORIENTATION_SINGLE_HAND)
+        val leavingCustom = activeControlMode == ORIENTATION_CUSTOM && mode != ORIENTATION_CUSTOM
         val changedMode = activeControlMode != null && activeControlMode != mode
         activeControlMode = mode
+        val custom = mode == ORIENTATION_CUSTOM
+        customCanvas?.visibility = if (custom) View.VISIBLE else View.GONE
+        leftJoyStick.visibility = if (custom) View.GONE else View.VISIBLE
+        rightJoyStick.visibility = when {
+            custom -> View.GONE
+            resources.configuration.orientation == Configuration.ORIENTATION_PORTRAIT -> View.INVISIBLE
+            else -> View.VISIBLE
+        }
+        for (id in listOf(R.id.switchCH6, R.id.switchCH7, R.id.switchCH8)) {
+            findViewById<View>(id).visibility = if (custom) View.GONE else View.VISIBLE
+        }
+        if (custom) {
+            if (changedMode) customState.reset(false) else customState.setArmed(false)
+            renderCustomControls()
+            return
+        }
+        customCanvas?.removeAllViews()
+        if (leavingCustom) {
+            for (channel in 9..16) crsfData.data_array[channel - 1] = channel
+        }
         val airplaneMode = isDualHandAirplaneMode()
         val carMode = isRcCarMode()
         leftJoyStick.setAxisMode(if (carMode) Joystick.AxisMode.HORIZONTAL else Joystick.AxisMode.BOTH)
@@ -727,7 +946,58 @@ class MainActivity : AppCompatActivity() {
         return result
     }
 
+    private fun prepareBatteryTelemetry() {
+        val telemetry = CrsfBatteryTelemetry()
+        batteryTelemetry = telemetry
+        serialDriver.setReadListener { data ->
+            telemetry.feed(data, SystemClock.elapsedRealtime())
+        }
+        serialDriver.setCloseListener {
+            batteryHandler.post {
+                // Ignore a queued disconnect from an earlier serial session.
+                if (batteryTelemetry !== telemetry) return@post
+                serialOpened = false
+                batteryTelemetry = null
+                resetCustomSerialState()
+                findViewById<Button>(R.id.openSerialButton).isEnabled = true
+                updateBatteryTelemetryView()
+            }
+        }
+    }
+
+    private fun updateBatteryTelemetryView() {
+        val view = findViewById<TextView>(R.id.batteryTelemetryView)
+        val reading = batteryTelemetry?.latest()
+        val available = serialOpened && reading?.isFresh(SystemClock.elapsedRealtime()) == true
+        val text: String
+        val description: String
+        if (available && reading != null) {
+            val voltage = reading.voltageDecivolts / 10.0
+            val percent = reading.remainingPercent
+            text = if (percent == null) getString(R.string.battery_voltage, voltage)
+                else getString(R.string.battery_voltage_percent, voltage, percent)
+            description = if (percent == null)
+                getString(R.string.battery_voltage_description, voltage)
+            else getString(R.string.battery_percent_description, voltage, percent)
+        } else {
+            text = getString(R.string.battery_unavailable)
+            description = getString(when {
+                !serialOpened -> R.string.battery_disconnected_description
+                reading == null -> R.string.battery_waiting_description
+                else -> R.string.battery_stale_description
+            })
+        }
+        if (view.text.toString() != text) view.text = text
+        if (view.contentDescription != description) view.contentDescription = description
+    }
+
     private fun openUartDevice(): Boolean {
+        resetCustomSerialState()
+        prepareBatteryTelemetry()
+        if (!armSwitch.isChecked && !isCustomMode() && !customSafetyHold) {
+            crsfData.data_array[2] = duty2CRSF(if (isRcCarMode()) 0.5f else 0f)
+            crsfData.data_array[4] = duty2CRSF(0f)
+        }
         val ret = serialDriver.resumeUsbList()
         if (ret == -1) {
             debugInfo(getString(R.string.msg_no_uart_device))
@@ -755,7 +1025,7 @@ class MainActivity : AppCompatActivity() {
         }
 
         //debugInfo("config ret:$config_ret")
-        return true
+        return if (isCustomMode() || customSafetyHold) serialOpened else true
     }
 
     private fun uartWrite(bytearr: ByteArray, len: Int) {
@@ -767,6 +1037,9 @@ class MainActivity : AppCompatActivity() {
         if (ret < 0) {
             debugInfo(getString(R.string.msg_uart_disconnected))
             serialOpened = false
+            batteryTelemetry = null
+            updateBatteryTelemetryView()
+            resetCustomSerialState()
             findViewById<Button>(R.id.openSerialButton).isEnabled = true
             try {
                 serialDriver.closeDevice()
@@ -804,13 +1077,13 @@ class MainActivity : AppCompatActivity() {
             leftJoyStick.enable = false
             rightJoyStick.enable = false
         } else {
-            leftJoyStick.enable = true
-            rightJoyStick.enable = true
+            initializeJoystickStates()
         }
     }
 
     /** Called when the user taps the Settings button */
     fun openSettings(view: View) {
+        if (isCustomMode()) armSwitch.isChecked = false
         val intent = Intent(this, SettingsActivity::class.java)
         startActivity(intent)
     }
@@ -829,6 +1102,7 @@ class MainActivity : AppCompatActivity() {
         when (keyCode) {
             //音量+按键
             KeyEvent.KEYCODE_VOLUME_UP -> {
+                if (!armSwitch.isChecked) return true
                 if(thrust<1){
                     thrust += 0.05f
                 }else{
@@ -851,6 +1125,7 @@ class MainActivity : AppCompatActivity() {
 
     @SuppressLint("SetTextI18n")
     fun sensorCallBack(listen: MyListener) {
+        if (isCustomMode() || customSafetyHold) return
         val currentTime = System.currentTimeMillis()
 
         // Read gyro control state from shared preferences
@@ -858,6 +1133,7 @@ class MainActivity : AppCompatActivity() {
 
         // Update CRSF data regardless of UI throttling
         if (isGyroEnabled) {
+            if (!armSwitch.isChecked) thrust = 0f
             val tempRoll = constrain(-130f, -50f, listen.pitch) + 50
             val tempPitch = constrain(-40f, 40f, listen.roll) + 40
 
@@ -908,6 +1184,9 @@ class MainActivity : AppCompatActivity() {
             yaw_offset = listen.yaw
         }else{
             crsfData.data_array[4]=duty2CRSF(0f)
+            // Lock throttle at the mode's stop value even if a stale joystick
+            // callback or gyro update changed the raw input while disarmed.
+            crsfData.data_array[2]=duty2CRSF(if (isRcCarMode()) 0.5f else 0f)
         }
 
         if (serialOpened) {

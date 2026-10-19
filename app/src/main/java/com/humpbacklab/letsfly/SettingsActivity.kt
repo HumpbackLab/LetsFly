@@ -7,7 +7,6 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.content.SharedPreferences
 import android.content.pm.PackageManager
-import android.content.pm.ActivityInfo
 import android.hardware.Sensor
 import android.hardware.SensorManager
 import android.location.LocationManager
@@ -53,6 +52,8 @@ class SettingsActivity : AppCompatActivity() {
     private lateinit var dualHandRadioButton: RadioButton
     private lateinit var dualHandAirplaneRadioButton: RadioButton
     private lateinit var rcCarRadioButton: RadioButton
+    private lateinit var customRadioButton: RadioButton
+    private lateinit var customEditorButton: Button
     private lateinit var physicalJoystickCalibrationButton: Button
     private lateinit var resetPhysicalJoysticksButton: Button
     private lateinit var backButton: Button
@@ -120,6 +121,7 @@ class SettingsActivity : AppCompatActivity() {
         private const val ORIENTATION_DUAL_HAND = "dual_hand"     // landscape
         private const val ORIENTATION_DUAL_HAND_AIRPLANE = "dual_hand_airplane"
         private const val ORIENTATION_RC_CAR = "rc_car"
+        private const val ORIENTATION_CUSTOM = MainActivity.ORIENTATION_CUSTOM
         private const val WIFI_SCAN_PERMISSION_REQUEST = 3107
     }
 
@@ -161,6 +163,8 @@ class SettingsActivity : AppCompatActivity() {
         dualHandRadioButton = findViewById(R.id.dualHandRadioButton)
         dualHandAirplaneRadioButton = findViewById(R.id.dualHandAirplaneRadioButton)
         rcCarRadioButton = findViewById(R.id.rcCarRadioButton)
+        customRadioButton = findViewById(R.id.customRadioButton)
+        customEditorButton = findViewById(R.id.customEditorButton)
         physicalJoystickCalibrationButton = findViewById(R.id.physicalJoystickCalibrationButton)
         resetPhysicalJoysticksButton = findViewById(R.id.resetPhysicalJoysticksButton)
         backButton = findViewById(R.id.backButton)
@@ -765,27 +769,23 @@ class SettingsActivity : AppCompatActivity() {
             ORIENTATION_DUAL_HAND -> dualHandRadioButton.isChecked = true
             ORIENTATION_DUAL_HAND_AIRPLANE -> dualHandAirplaneRadioButton.isChecked = true
             ORIENTATION_RC_CAR -> rcCarRadioButton.isChecked = true
+            ORIENTATION_CUSTOM -> customRadioButton.isChecked = true
             else -> singleHandRadioButton.isChecked = true  // Default to single hand
         }
 
+        customEditorButton.setOnClickListener {
+            startActivity(Intent(this, CustomLayoutEditorActivity::class.java))
+        }
+        customEditorButton.isEnabled = selectedOrientation == ORIENTATION_CUSTOM
+
         orientationRadioGroup.setOnCheckedChangeListener { _, checkedId ->
+            customEditorButton.isEnabled = checkedId == R.id.customRadioButton
             val orientation = when (checkedId) {
-                R.id.dualHandRadioButton -> {
-                    requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
-                    ORIENTATION_DUAL_HAND
-                }
-                R.id.dualHandAirplaneRadioButton -> {
-                    requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
-                    ORIENTATION_DUAL_HAND_AIRPLANE
-                }
-                R.id.rcCarRadioButton -> {
-                    requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
-                    ORIENTATION_RC_CAR
-                }
-                else -> { // Default to single hand
-                    requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
-                    ORIENTATION_SINGLE_HAND
-                }
+                R.id.dualHandRadioButton -> ORIENTATION_DUAL_HAND
+                R.id.dualHandAirplaneRadioButton -> ORIENTATION_DUAL_HAND_AIRPLANE
+                R.id.rcCarRadioButton -> ORIENTATION_RC_CAR
+                R.id.customRadioButton -> ORIENTATION_CUSTOM
+                else -> ORIENTATION_SINGLE_HAND
             }
 
             // Save the setting to shared preferences
@@ -803,6 +803,7 @@ class SettingsActivity : AppCompatActivity() {
                 R.id.dualHandRadioButton -> ORIENTATION_DUAL_HAND
                 R.id.dualHandAirplaneRadioButton -> ORIENTATION_DUAL_HAND_AIRPLANE
                 R.id.rcCarRadioButton -> ORIENTATION_RC_CAR
+                R.id.customRadioButton -> ORIENTATION_CUSTOM
                 else -> ORIENTATION_SINGLE_HAND
             }
 
@@ -825,7 +826,6 @@ class SettingsActivity : AppCompatActivity() {
                 .putBoolean(KEY_GYRO_ENABLED, false)
                 .putString(KEY_ORIENTATION_MODE, ORIENTATION_DUAL_HAND)
                 .apply()
-            requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
             finish()
         }
     }

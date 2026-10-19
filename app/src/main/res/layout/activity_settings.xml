@@ -398,6 +398,20 @@
                 android:textSize="@dimen/text_size_normal"
                 android:padding="@dimen/spacing_s" />
 
+            <RadioButton
+                android:id="@+id/customRadioButton"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/radio_custom"
+                android:textSize="@dimen/text_size_normal"
+                android:padding="@dimen/spacing_s" />
+
+            <Button
+                android:id="@+id/customEditorButton"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/custom_edit_layout" />
+
         </RadioGroup>
 
         <TextView

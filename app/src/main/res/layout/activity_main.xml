@@ -38,13 +38,34 @@
                 android:orientation="horizontal">
 
             <!-- Connect Button -->
-            <Button
-                    android:id="@+id/openSerialButton"
+            <LinearLayout
                     android:layout_width="@dimen/button_width"
-                    android:layout_height="@dimen/button_height"
+                    android:layout_height="wrap_content"
                     android:layout_marginEnd="@dimen/spacing_s"
-                    android:onClick="openSerial"
-                    android:text="@string/btn_connect"/>
+                    android:orientation="vertical">
+
+                <Button
+                        android:id="@+id/openSerialButton"
+                        android:layout_width="match_parent"
+                        android:layout_height="@dimen/button_height"
+                        android:onClick="openSerial"
+                        android:text="@string/btn_connect"/>
+
+                <TextView
+                        android:id="@+id/batteryTelemetryView"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:minHeight="24dp"
+                        android:background="@drawable/video_control_background"
+                        android:gravity="center"
+                        android:maxLines="1"
+                        android:ellipsize="end"
+                        android:padding="4dp"
+                        android:text="@string/battery_unavailable"
+                        android:textColor="@android:color/white"
+                        android:textSize="12sp"
+                        android:contentDescription="@string/battery_disconnected_description"/>
+            </LinearLayout>
 
             <LinearLayout
                     android:layout_width="40dp"

@@ -39,7 +39,11 @@
             android:name=".SettingsActivity"
             android:exported="false"
             android:parentActivityName=".MainActivity"
-            android:screenOrientation="fullUser" />
+            android:screenOrientation="portrait" />
+        <activity
+            android:name=".CustomLayoutEditorActivity"
+            android:exported="false"
+            android:screenOrientation="landscape" />
     </application>
 
 </manifest>
