@@ -745,7 +745,8 @@ class MainActivity : AppCompatActivity() {
                     view.setOnJoystickMoveListener(object : OnJoystickMoveListener {
                         override fun onJoystickValueChanged(x: Float, y: Float) {
                             customState.move(control.id, x, y)
-                            if (!customState.armed) updateCustomControlView(view, control)
+                            if (!customState.armed)
+                                updateCustomControlView(view, control, lockedAxesOnly = true)
                         }
                     }, 10)
                     view.setOnReleaseListener { customState.release(control.id) }
@@ -769,7 +770,8 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun updateCustomControlView(view: View, control: CustomControl) {
+    private fun updateCustomControlView(view: View, control: CustomControl,
+        lockedAxesOnly: Boolean = false) {
         if (view is Joystick) {
             view.enable = !customSafetyHold && customState.isControlEnabled(control)
             val xAxis = if (control.type == CustomControlType.VERTICAL) null else control.first
@@ -779,7 +781,11 @@ class MainActivity : AppCompatActivity() {
             fun reset(axis: CustomAxis?) = if (axis == null) 0f else
                 axis.position(if (axis.autoReturn) axis.returnValue else customState.value(axis.channel))
             view.setDefaultPosition(reset(xAxis), reset(yAxis))
-            view.setXY(current(xAxis), current(yAxis))
+            // Do not quantize an active auxiliary axis back into its pixel position
+            // on every polling callback: repeated truncation can make it drift.
+            view.setXY(current(xAxis), current(yAxis),
+                updateX = !lockedAxesOnly || xAxis?.channel in 1..4,
+                updateY = !lockedAxesOnly || yAxis?.channel in 1..4)
         } else if (view is Button) {
             view.isEnabled = !customSafetyHold && customState.isControlEnabled(control)
             CustomControlViews.styleButton(view, control, customState.buttonPosition(control.id))

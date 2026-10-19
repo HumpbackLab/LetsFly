@@ -294,10 +294,11 @@ class Joystick(context: Context, attrs: AttributeSet? = null) : View(context, at
     public fun getOutX() = (xPosition - centerX) / travelRadiusX.coerceAtLeast(1f)
     public fun getOutY() = -(yPosition - centerY) / travelRadiusY.coerceAtLeast(1f)
 
-    public fun setXY(targetX:Float,targetY:Float){
-        xPosition = if (horizontalLocked || axisMode == AxisMode.VERTICAL) centerX.toInt()
+    public fun setXY(targetX:Float,targetY:Float, updateX: Boolean = true,
+        updateY: Boolean = true){
+        if (updateX) xPosition = if (horizontalLocked || axisMode == AxisMode.VERTICAL) centerX.toInt()
             else (travelRadiusX * targetX + centerX).toInt()
-        yPosition = if (axisMode == AxisMode.HORIZONTAL) centerY.toInt()
+        if (updateY) yPosition = if (axisMode == AxisMode.HORIZONTAL) centerY.toInt()
             else (centerY - travelRadiusY * targetY).toInt()
         invalidate()
     }
