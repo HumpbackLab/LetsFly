@@ -609,6 +609,25 @@ class CustomLayoutEditorActivity : AppCompatActivity() {
     private data class AxisFields(val channel: Spinner, val low: EditText,
         val high: EditText, val auto: CheckBox, val returnValue: EditText)
 
+    private fun addDisarmHint(container: LinearLayout, channel: Spinner, message: Int) {
+        val hint = TextView(this).apply {
+            setText(message)
+            setTextColor(Color.DKGRAY)
+            textSize = 12f
+        }
+        container.addView(hint)
+        fun update() {
+            hint.visibility = if ((channels.getOrNull(channel.selectedItemPosition) ?: 0) in 1..4)
+                View.VISIBLE else View.GONE
+        }
+        channel.onItemSelectedListener = object : android.widget.AdapterView.OnItemSelectedListener {
+            override fun onItemSelected(parent: android.widget.AdapterView<*>?, view: View?,
+                position: Int, id: Long) { update() }
+            override fun onNothingSelected(parent: android.widget.AdapterView<*>?) { update() }
+        }
+        update()
+    }
+
     private fun axisFields(container: LinearLayout, name: String, axis: CustomAxis): AxisFields {
         label(container, name)
         val channel = channelSpinner(axis.channel)
@@ -628,6 +647,7 @@ class CustomLayoutEditorActivity : AppCompatActivity() {
         label(container, getString(R.string.custom_return_value))
         val returnValue = number(axis.returnValue)
         container.addView(returnValue)
+        addDisarmHint(container, channel, R.string.custom_primary_return_hint)
         return AxisFields(channel, low, high, auto, returnValue)
     }
 
@@ -663,6 +683,7 @@ class CustomLayoutEditorActivity : AppCompatActivity() {
             on = number(control.onValue)
             label(content, getString(R.string.custom_button_off))
             content.addView(off)
+            addDisarmHint(content, channel, R.string.custom_primary_off_hint)
             val middleLabel = TextView(this).apply {
                 setText(R.string.custom_button_middle)
                 setTextColor(Color.DKGRAY)
@@ -738,6 +759,7 @@ class CustomLayoutEditorActivity : AppCompatActivity() {
             orientation = LinearLayout.VERTICAL
             setPadding(dp(20), dp(8), dp(20), dp(8))
         }
+        label(content, getString(R.string.custom_channel_defaults_hint))
         val fields = channels.associateWith { channel ->
             label(content, CustomControlViews.channelName(this, channel))
             number(config.defaults[channel - 1]).also(content::addView)

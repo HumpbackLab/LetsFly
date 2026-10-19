@@ -119,6 +119,9 @@
     <string name="custom_output_range">Low / high output (0–100%)</string>
     <string name="custom_auto_return">Return on release</string>
     <string name="custom_return_value">Return value (0–100%)</string>
+    <string name="custom_primary_return_hint">While disarmed, this channel is locked to its return value, even when automatic return is off. Set it to the neutral/stop value.</string>
+    <string name="custom_primary_off_hint">While disarmed, this channel is locked to the off value. Set it to the neutral/stop value.</string>
+    <string name="custom_channel_defaults_hint">For channels 1–4 with a control assigned, disarming and rearming use its return value (off value for buttons). Unassigned channels use the defaults on this page.</string>
     <string name="custom_button_values">Off / on output (0–100%)</string>
     <string name="custom_button_off">Off value</string>
     <string name="custom_button_on">On value</string>

@@ -397,7 +397,7 @@ class MainActivity : AppCompatActivity() {
         armSwitch.setOnCheckedChangeListener { _, isChecked ->
             updateSwitchVisualFeedback(armSwitch, isChecked)
             if (isCustomMode() || customSafetyHold) {
-                customState.reset(isChecked && !customSafetyHold)
+                customState.setArmed(isChecked && !customSafetyHold)
                 updateCustomControlViews()
                 return@setOnCheckedChangeListener
             }
@@ -406,6 +406,7 @@ class MainActivity : AppCompatActivity() {
             if (isRcCarMode()) rightJoyStick.enable = isChecked
             // When disarmed, reset aircraft throttle to minimum or car controls to center.
             if (!isChecked) {
+                thrust = 0f
                 leftJoyStick.setXY(0f, if (isRcCarMode()) 0f else -1.0f)
                 loadLeftJoyStick(leftJoyStick.getOutX(), leftJoyStick.getOutY())
                 if (isRcCarMode()) {
@@ -477,8 +478,11 @@ class MainActivity : AppCompatActivity() {
         super.onResume()
         customSafetyHold = false
         if (isCustomMode()) {
-            customConfig = CustomControlConfig.load(sharedPreferences)
-            customState = CustomControlState(customConfig)
+            val savedConfig = CustomControlConfig.load(sharedPreferences)
+            if (savedConfig != customConfig) {
+                customConfig = savedConfig
+                customState = CustomControlState(customConfig)
+            }
             armSwitch.isChecked = false
         }
         applyControlModeDefaults()
@@ -506,7 +510,7 @@ class MainActivity : AppCompatActivity() {
         if (isCustomMode()) {
             customSafetyHold = true
             armSwitch.isChecked = false
-            customState.reset(false)
+            customState.setArmed(false)
             updateCustomControlViews()
             syncCustomSender()
         }
@@ -737,15 +741,16 @@ class MainActivity : AppCompatActivity() {
                     updateCustomControlView(view, control)
                 }
                 if (view is Joystick) {
-                    view.enable = armSwitch.isChecked
+                    view.enable = !customSafetyHold && customState.isControlEnabled(control)
                     view.setOnJoystickMoveListener(object : OnJoystickMoveListener {
                         override fun onJoystickValueChanged(x: Float, y: Float) {
                             customState.move(control.id, x, y)
+                            if (!customState.armed) updateCustomControlView(view, control)
                         }
                     }, 10)
                     view.setOnReleaseListener { customState.release(control.id) }
                 } else if (view is Button) {
-                    view.isEnabled = armSwitch.isChecked
+                    view.isEnabled = !customSafetyHold && customState.isControlEnabled(control)
                     view.setOnClickListener {
                         CustomControlViews.styleButton(view, control,
                             customState.advanceButton(control.id))
@@ -766,7 +771,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun updateCustomControlView(view: View, control: CustomControl) {
         if (view is Joystick) {
-            view.enable = customState.armed
+            view.enable = !customSafetyHold && customState.isControlEnabled(control)
             val xAxis = if (control.type == CustomControlType.VERTICAL) null else control.first
             val yAxis = control.second ?: if (control.type == CustomControlType.VERTICAL)
                 control.first else null
@@ -776,7 +781,7 @@ class MainActivity : AppCompatActivity() {
             view.setDefaultPosition(reset(xAxis), reset(yAxis))
             view.setXY(current(xAxis), current(yAxis))
         } else if (view is Button) {
-            view.isEnabled = customState.armed
+            view.isEnabled = !customSafetyHold && customState.isControlEnabled(control)
             CustomControlViews.styleButton(view, control, customState.buttonPosition(control.id))
         }
     }
@@ -798,7 +803,7 @@ class MainActivity : AppCompatActivity() {
             findViewById<View>(id).visibility = if (custom) View.GONE else View.VISIBLE
         }
         if (custom) {
-            customState.reset(false)
+            if (changedMode) customState.reset(false) else customState.setArmed(false)
             renderCustomControls()
             return
         }
@@ -983,6 +988,10 @@ class MainActivity : AppCompatActivity() {
     private fun openUartDevice(): Boolean {
         resetCustomSerialState()
         prepareBatteryTelemetry()
+        if (!armSwitch.isChecked && !isCustomMode() && !customSafetyHold) {
+            crsfData.data_array[2] = duty2CRSF(if (isRcCarMode()) 0.5f else 0f)
+            crsfData.data_array[4] = duty2CRSF(0f)
+        }
         val ret = serialDriver.resumeUsbList()
         if (ret == -1) {
             debugInfo(getString(R.string.msg_no_uart_device))
@@ -1062,8 +1071,7 @@ class MainActivity : AppCompatActivity() {
             leftJoyStick.enable = false
             rightJoyStick.enable = false
         } else {
-            leftJoyStick.enable = true
-            rightJoyStick.enable = true
+            initializeJoystickStates()
         }
     }
 
@@ -1088,6 +1096,7 @@ class MainActivity : AppCompatActivity() {
         when (keyCode) {
             //音量+按键
             KeyEvent.KEYCODE_VOLUME_UP -> {
+                if (!armSwitch.isChecked) return true
                 if(thrust<1){
                     thrust += 0.05f
                 }else{
@@ -1118,6 +1127,7 @@ class MainActivity : AppCompatActivity() {
 
         // Update CRSF data regardless of UI throttling
         if (isGyroEnabled) {
+            if (!armSwitch.isChecked) thrust = 0f
             val tempRoll = constrain(-130f, -50f, listen.pitch) + 50
             val tempPitch = constrain(-40f, 40f, listen.roll) + 40
 
@@ -1168,6 +1178,9 @@ class MainActivity : AppCompatActivity() {
             yaw_offset = listen.yaw
         }else{
             crsfData.data_array[4]=duty2CRSF(0f)
+            // Lock throttle at the mode's stop value even if a stale joystick
+            // callback or gyro update changed the raw input while disarmed.
+            crsfData.data_array[2]=duty2CRSF(if (isRcCarMode()) 0.5f else 0f)
         }
 
         if (serialOpened) {

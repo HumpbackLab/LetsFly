@@ -159,39 +159,60 @@ internal data class CustomControlConfig(
 internal class CustomControlState(private val config: CustomControlConfig) {
     private val values = config.defaults.toMutableList()
     private val buttonPositions = mutableMapOf<Int, Int>()
+    private val primaryReturnValues = config.defaults.take(4).toIntArray().apply {
+        for (control in config.controls) {
+            for (axis in listOfNotNull(control.first, control.second)) {
+                if (axis.channel in 1..4) this[axis.channel - 1] =
+                    if (control.type == CustomControlType.BUTTON) control.offValue else axis.returnValue
+            }
+        }
+    }
     var armed = false
         private set
 
     init { reset(false) }
 
     fun reset(arm: Boolean) {
-        armed = arm
         buttonPositions.clear()
         for (index in values.indices) values[index] = config.defaults[index]
-        values[4] = if (arm) 100 else 0
+        setArmed(arm)
     }
 
+    fun setArmed(arm: Boolean) {
+        armed = arm
+        // Keep auxiliary switch/axis state across arming, especially Wi-Fi CH7.
+        // Primary controls start at their stop/neutral values even when
+        // automatic return on release is disabled.
+        for (index in 0..3) values[index] = primaryReturnValues[index]
+        values[4] = if (arm) 100 else 0
+        config.controls.filter { (it.first?.channel ?: 0) < 6 }
+            .forEach { buttonPositions.remove(it.id) }
+    }
+
+    private fun canControl(channel: Int): Boolean = channel != 5 && (armed || channel >= 6)
+
+    fun isControlEnabled(control: CustomControl): Boolean =
+        listOfNotNull(control.first, control.second).any { canControl(it.channel) }
+
     fun move(id: Int, x: Float, y: Float) {
-        if (!armed) return
         val control = config.controls.firstOrNull { it.id == id } ?: return
         if (control.type == CustomControlType.BUTTON) return
-        control.first?.let { values[it.channel - 1] =
+        control.first?.takeIf { canControl(it.channel) }?.let { values[it.channel - 1] =
             it.value(if (control.type == CustomControlType.VERTICAL) y else x) }
-        control.second?.let { values[it.channel - 1] = it.value(y) }
+        control.second?.takeIf { canControl(it.channel) }?.let { values[it.channel - 1] = it.value(y) }
     }
 
     fun release(id: Int) {
-        if (!armed) return
         val control = config.controls.firstOrNull { it.id == id } ?: return
         for (axis in listOfNotNull(control.first, control.second)) {
-            if (axis.autoReturn) values[axis.channel - 1] = axis.returnValue
+            if (canControl(axis.channel) && axis.autoReturn) values[axis.channel - 1] = axis.returnValue
         }
     }
 
     fun advanceButton(id: Int): Int {
-        if (!armed) return 0
         val control = config.controls.firstOrNull { it.id == id &&
             it.type == CustomControlType.BUTTON } ?: return 0
+        if (!canControl(control.first!!.channel)) return buttonPosition(id)
         val position = ((buttonPositions[id] ?: 0) + 1) % control.buttonPositions
         buttonPositions[id] = position
         values[control.first!!.channel - 1] = when (position) {

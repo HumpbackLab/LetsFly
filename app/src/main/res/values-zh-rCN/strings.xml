@@ -119,6 +119,9 @@
     <string name="custom_output_range">低位 / 高位输出（0–100%）</string>
     <string name="custom_auto_return">松手后自动回位</string>
     <string name="custom_return_value">回位值（0–100%）</string>
+    <string name="custom_primary_return_hint">未解锁时，此通道锁定在回位值（即使关闭自动回位）。请将其设为中立／停车值。</string>
+    <string name="custom_primary_off_hint">未解锁时，此通道锁定在关闭档值。请将其设为中立／停车值。</string>
+    <string name="custom_channel_defaults_hint">CH1–CH4 已绑定控件时，未解锁及再次解锁使用控件的回位值（按钮使用关闭档值）；未绑定时使用本页默认值。</string>
     <string name="custom_button_values">关闭 / 开启输出（0–100%）</string>
     <string name="custom_button_off">关闭时的值</string>
     <string name="custom_button_on">开启时的值</string>
