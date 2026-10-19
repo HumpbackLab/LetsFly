@@ -2,6 +2,7 @@ package com.humpbacklab.letsfly
 
 import android.app.AlertDialog
 import android.content.pm.ActivityInfo
+import android.content.res.ColorStateList
 import android.graphics.Color
 import android.graphics.Canvas
 import android.graphics.Paint
@@ -23,12 +24,15 @@ import android.widget.FrameLayout
 import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.Spinner
+import android.widget.Switch
 import android.widget.ArrayAdapter
 import android.widget.ImageView
 import android.widget.SeekBar
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.ContextCompat
+import androidx.core.graphics.drawable.DrawableCompat
 import kotlin.math.abs
 
 class CustomLayoutEditorActivity : AppCompatActivity() {
@@ -71,6 +75,20 @@ class CustomLayoutEditorActivity : AppCompatActivity() {
                 setOnClickListener(null)
                 isEnabled = false
                 isClickable = false
+                // Keep disabled previews readable on the dark editing canvas.
+                if (this is TextView) setTextColor(Color.WHITE)
+                if (this is Button) backgroundTintList = ColorStateList.valueOf(
+                    ContextCompat.getColor(this@CustomLayoutEditorActivity, R.color.purple_500))
+                if (this is Switch) {
+                    thumbDrawable = DrawableCompat.wrap(thumbDrawable).mutate().apply {
+                        DrawableCompat.setTint(this, ContextCompat.getColor(
+                            this@CustomLayoutEditorActivity, R.color.switch_thumb_off))
+                    }
+                    trackDrawable = DrawableCompat.wrap(trackDrawable).mutate().apply {
+                        DrawableCompat.setTint(this, ContextCompat.getColor(
+                            this@CustomLayoutEditorActivity, R.color.switch_background_off))
+                    }
+                }
             }
         }
         root.addView(fixedControls, FrameLayout.LayoutParams(-1, -2, Gravity.TOP))
