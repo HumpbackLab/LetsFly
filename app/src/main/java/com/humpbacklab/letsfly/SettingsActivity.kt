@@ -7,7 +7,6 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.content.SharedPreferences
 import android.content.pm.PackageManager
-import android.content.pm.ActivityInfo
 import android.hardware.Sensor
 import android.hardware.SensorManager
 import android.location.LocationManager
@@ -782,26 +781,11 @@ class SettingsActivity : AppCompatActivity() {
         orientationRadioGroup.setOnCheckedChangeListener { _, checkedId ->
             customEditorButton.isEnabled = checkedId == R.id.customRadioButton
             val orientation = when (checkedId) {
-                R.id.dualHandRadioButton -> {
-                    requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
-                    ORIENTATION_DUAL_HAND
-                }
-                R.id.dualHandAirplaneRadioButton -> {
-                    requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
-                    ORIENTATION_DUAL_HAND_AIRPLANE
-                }
-                R.id.rcCarRadioButton -> {
-                    requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
-                    ORIENTATION_RC_CAR
-                }
-                R.id.customRadioButton -> {
-                    requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
-                    ORIENTATION_CUSTOM
-                }
-                else -> { // Default to single hand
-                    requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
-                    ORIENTATION_SINGLE_HAND
-                }
+                R.id.dualHandRadioButton -> ORIENTATION_DUAL_HAND
+                R.id.dualHandAirplaneRadioButton -> ORIENTATION_DUAL_HAND_AIRPLANE
+                R.id.rcCarRadioButton -> ORIENTATION_RC_CAR
+                R.id.customRadioButton -> ORIENTATION_CUSTOM
+                else -> ORIENTATION_SINGLE_HAND
             }
 
             // Save the setting to shared preferences
@@ -842,7 +826,6 @@ class SettingsActivity : AppCompatActivity() {
                 .putBoolean(KEY_GYRO_ENABLED, false)
                 .putString(KEY_ORIENTATION_MODE, ORIENTATION_DUAL_HAND)
                 .apply()
-            requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
             finish()
         }
     }
