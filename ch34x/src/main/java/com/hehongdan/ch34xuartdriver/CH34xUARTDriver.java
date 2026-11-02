@@ -413,6 +413,10 @@ public class CH34xUARTDriver {
                 var6 = 3;
                 var9 = 230;
                 break;
+            case 400000:
+                var6 = 3;
+                var9 = 241; // 6 MHz / (256 - 241) = 400000 baud.
+                break;
             case 460800:
                 var6 = 3;
                 var9 = 243;
