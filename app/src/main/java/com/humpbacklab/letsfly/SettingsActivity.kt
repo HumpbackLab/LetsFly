@@ -14,6 +14,8 @@ import android.net.wifi.ScanResult
 import android.net.wifi.WifiManager
 import android.os.Build
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.os.SystemClock
 import android.provider.Settings
 import android.view.Gravity
@@ -57,6 +59,37 @@ class SettingsActivity : AppCompatActivity() {
     private lateinit var physicalJoystickCalibrationButton: Button
     private lateinit var resetPhysicalJoysticksButton: Button
     private lateinit var backButton: Button
+    private lateinit var elrsRateSpinner: Spinner
+    private lateinit var elrsRateApplyButton: Button
+    private lateinit var elrsRateRefreshButton: Button
+    private lateinit var elrsRateCurrent: TextView
+    private lateinit var elrsRateStatus: TextView
+    private var displayedElrsRate: ElrsPacketRateClient.Rate? = null
+    private var displayedElrsRatio: ElrsPacketRateClient.Rate? = null
+    private lateinit var elrsRatioSpinner: Spinner
+    private lateinit var elrsRatioApplyButton: Button
+    private lateinit var elrsRatioCurrent: TextView
+    private lateinit var elrsRatioStatus: TextView
+    private var refreshElrsRatio = false
+    private var observedElrsClient: ElrsPacketRateClient? = null
+    private val elrsHandler = Handler(Looper.getMainLooper())
+    private val elrsUpdater = object : Runnable {
+        override fun run() {
+            val client = ElrsPacketRateClient.active
+            if (client !== observedElrsClient) {
+                observedElrsClient = client
+                client?.refresh(SystemClock.elapsedRealtime())
+                refreshElrsRatio = client != null
+            }
+            client?.tick(SystemClock.elapsedRealtime())
+            if (refreshElrsRatio && client != null && !client.busy && client.telemetryRatio?.busy == false) {
+                refreshElrsRatio = false
+                client.telemetryRatio.refresh(SystemClock.elapsedRealtime())
+            }
+            updateElrsRateControls()
+            elrsHandler.postDelayed(this, 250L)
+        }
+    }
     private lateinit var videoChannelSpinner: Spinner
     private lateinit var videoChannelApplyButton: Button
     private lateinit var videoCurrentChannel: TextView
@@ -101,6 +134,7 @@ class SettingsActivity : AppCompatActivity() {
         Triple(R.id.displayValuesLabel, R.id.displayValuesContainer, R.string.section_debug_options),
         Triple(R.id.additionalSettingsLabel, R.id.additionalSettingsContainer, R.string.section_additional_settings),
         Triple(R.id.orientationLabel, R.id.orientationRadioGroup, R.string.section_display_mode),
+        Triple(R.id.elrsRateLabel, R.id.elrsRateContainer, R.string.section_elrs_rate),
         Triple(R.id.videoChannelLabel, R.id.videoChannelContainer, R.string.section_video_channel)
     )
 
@@ -141,6 +175,7 @@ class SettingsActivity : AppCompatActivity() {
         setupPhysicalJoystickCalibration()
         setupResetPhysicalJoysticks()
         setupBackButton()
+        setupElrsRateControls()
         setupVideoChannelControls()
         setupWifiScanControls()
         loadSavedPreferences()
@@ -168,6 +203,15 @@ class SettingsActivity : AppCompatActivity() {
         physicalJoystickCalibrationButton = findViewById(R.id.physicalJoystickCalibrationButton)
         resetPhysicalJoysticksButton = findViewById(R.id.resetPhysicalJoysticksButton)
         backButton = findViewById(R.id.backButton)
+        elrsRateSpinner = findViewById(R.id.elrsRateSpinner)
+        elrsRateApplyButton = findViewById(R.id.elrsRateApplyButton)
+        elrsRateRefreshButton = findViewById(R.id.elrsRateRefreshButton)
+        elrsRateCurrent = findViewById(R.id.elrsRateCurrent)
+        elrsRateStatus = findViewById(R.id.elrsRateStatus)
+        elrsRatioSpinner = findViewById(R.id.elrsRatioSpinner)
+        elrsRatioApplyButton = findViewById(R.id.elrsRatioApplyButton)
+        elrsRatioCurrent = findViewById(R.id.elrsRatioCurrent)
+        elrsRatioStatus = findViewById(R.id.elrsRatioStatus)
         videoChannelSpinner = findViewById(R.id.videoChannelSpinner)
         videoChannelApplyButton = findViewById(R.id.videoChannelApplyButton)
         videoCurrentChannel = findViewById(R.id.videoCurrentChannel)
@@ -213,6 +257,69 @@ class SettingsActivity : AppCompatActivity() {
             )
         }
         super.onSaveInstanceState(outState)
+    }
+
+    private fun setupElrsRateControls() {
+        elrsRateRefreshButton.setOnClickListener {
+            refreshElrsRatio = ElrsPacketRateClient.active?.refresh(SystemClock.elapsedRealtime()) == true
+            updateElrsRateControls()
+        }
+        elrsRateApplyButton.setOnClickListener {
+            val option = displayedElrsRate?.options?.getOrNull(elrsRateSpinner.selectedItemPosition)
+                ?: return@setOnClickListener
+            refreshElrsRatio = ElrsPacketRateClient.active?.apply(option.value, SystemClock.elapsedRealtime()) == true
+            updateElrsRateControls()
+        }
+        elrsRatioApplyButton.setOnClickListener {
+            val option = displayedElrsRatio?.options?.getOrNull(elrsRatioSpinner.selectedItemPosition)
+                ?: return@setOnClickListener
+            ElrsPacketRateClient.active?.telemetryRatio?.apply(option.value, SystemClock.elapsedRealtime())
+            updateElrsRateControls()
+        }
+    }
+
+    private fun updateElrsRateControls() {
+        val client = ElrsPacketRateClient.active
+        displayedElrsRate = showElrsParameter(client, elrsRateSpinner, elrsRateApplyButton,
+            elrsRateCurrent, elrsRateStatus, displayedElrsRate, R.string.elrs_rate_unknown, R.string.elrs_rate_current)
+        displayedElrsRatio = showElrsParameter(client?.telemetryRatio, elrsRatioSpinner, elrsRatioApplyButton,
+            elrsRatioCurrent, elrsRatioStatus, displayedElrsRatio, R.string.elrs_ratio_unknown, R.string.elrs_ratio_current)
+        elrsRateRefreshButton.isEnabled = client != null && !client.busy && client.telemetryRatio?.busy != true
+    }
+
+    private fun showElrsParameter(client: ElrsPacketRateClient?, spinner: Spinner, apply: Button,
+                                 current: TextView, status: TextView, displayed: ElrsPacketRateClient.Rate?,
+                                 unknownText: Int, currentText: Int): ElrsPacketRateClient.Rate? {
+        val rate = client?.rate
+        if (displayed !== rate) {
+            spinner.adapter = ArrayAdapter(this, android.R.layout.simple_spinner_item,
+                rate?.options?.map { it.label } ?: emptyList<String>()).apply {
+                setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+            }
+            if (rate != null) spinner.setSelection(rate.options.indexOfFirst { it.value == rate.value }.coerceAtLeast(0))
+        }
+        val ready = client?.status in listOf(ElrsPacketRateClient.Status.READY,
+            ElrsPacketRateClient.Status.APPLIED, ElrsPacketRateClient.Status.REJECTED)
+        val owner = ElrsPacketRateClient.active
+        val busy = owner?.busy == true || owner?.telemetryRatio?.busy == true
+        spinner.isEnabled = ready && client?.canChange == true && !busy && rate?.options?.isNotEmpty() == true
+        apply.isEnabled = spinner.isEnabled
+        current.text = if (rate == null) getString(unknownText) else getString(currentText, rate.label)
+        status.setText(when {
+            client == null -> R.string.elrs_rate_connect
+            busy && !client.busy -> R.string.elrs_settings_busy
+            !client.busy && !client.canChange -> R.string.elrs_rate_disarm
+            else -> when (client.status) {
+                ElrsPacketRateClient.Status.READING -> R.string.elrs_rate_reading
+                ElrsPacketRateClient.Status.WRITING -> R.string.elrs_rate_writing
+                ElrsPacketRateClient.Status.APPLIED -> R.string.elrs_rate_applied
+                ElrsPacketRateClient.Status.REJECTED -> R.string.elrs_rate_rejected
+                ElrsPacketRateClient.Status.TIMEOUT -> R.string.elrs_rate_timeout
+                ElrsPacketRateClient.Status.UNSUPPORTED -> R.string.elrs_rate_unsupported
+                else -> R.string.elrs_rate_ready
+            }
+        })
+        return rate
     }
 
     private fun setupVideoChannelControls() {
@@ -480,6 +587,8 @@ class SettingsActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
+        elrsHandler.removeCallbacks(elrsUpdater)
+        elrsUpdater.run()
         clearWifiScanResults()
         wifiScanStatus.setText(R.string.video_channel_scan_prompt)
         currentVideoChannel = null
@@ -610,6 +719,8 @@ class SettingsActivity : AppCompatActivity() {
     }
 
     override fun onPause() {
+        elrsHandler.removeCallbacks(elrsUpdater)
+        observedElrsClient = null
         ++videoChannelSessionId
         ++videoStatusGeneration
         videoChannelClient?.stop()

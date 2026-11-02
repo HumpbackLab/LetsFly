@@ -415,6 +415,117 @@
         </RadioGroup>
 
         <TextView
+            android:id="@+id/elrsRateLabel"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/spacing_l"
+            android:layout_marginStart="@dimen/spacing_m"
+            android:text="@string/section_elrs_rate"
+            android:textSize="@dimen/text_size_large"
+            android:textStyle="bold"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/orientationRadioGroup" />
+
+        <LinearLayout
+            android:id="@+id/elrsRateContainer"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_margin="@dimen/spacing_m"
+            android:orientation="vertical"
+            android:padding="@dimen/spacing_s"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/elrsRateLabel">
+
+            <TextView
+                android:id="@+id/elrsRateCurrent"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/elrs_rate_unknown" />
+
+            <Spinner
+                android:id="@+id/elrsRateSpinner"
+                android:layout_width="match_parent"
+                android:layout_height="48dp"
+                android:enabled="false"
+                android:contentDescription="@string/elrs_rate_select" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                style="?android:attr/buttonBarStyle">
+
+                <Button
+                    android:id="@+id/elrsRateRefreshButton"
+                    style="?android:attr/buttonBarButtonStyle"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/elrs_rate_refresh" />
+
+                <Button
+                    android:id="@+id/elrsRateApplyButton"
+                    style="?android:attr/buttonBarButtonStyle"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:enabled="false"
+                    android:text="@string/btn_video_channel_apply" />
+            </LinearLayout>
+
+            <TextView
+                android:id="@+id/elrsRateStatus"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/elrs_rate_connect" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/spacing_s"
+                android:text="@string/elrs_rate_note" />
+
+            <TextView
+                android:id="@+id/elrsRatioCurrent"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/spacing_m"
+                android:text="@string/elrs_ratio_unknown" />
+
+            <Spinner
+                android:id="@+id/elrsRatioSpinner"
+                android:layout_width="match_parent"
+                android:layout_height="48dp"
+                android:enabled="false"
+                android:contentDescription="@string/elrs_ratio_select" />
+
+            <LinearLayout
+                style="?android:attr/buttonBarStyle"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal">
+                <Button
+                    android:id="@+id/elrsRatioApplyButton"
+                    style="?android:attr/buttonBarButtonStyle"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:enabled="false"
+                    android:text="@string/btn_video_channel_apply" />
+            </LinearLayout>
+
+            <TextView
+                android:id="@+id/elrsRatioStatus"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/elrs_rate_connect" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/spacing_s"
+                android:text="@string/elrs_ratio_note" />
+        </LinearLayout>
+
+        <TextView
             android:id="@+id/videoChannelLabel"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
@@ -424,7 +535,7 @@
             android:textSize="@dimen/text_size_large"
             android:textStyle="bold"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/orientationRadioGroup" />
+            app:layout_constraintTop_toBottomOf="@id/elrsRateContainer" />
 
         <LinearLayout
             android:id="@+id/videoChannelContainer"

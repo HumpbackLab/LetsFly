@@ -12,7 +12,7 @@ data class CrsfBatteryReading(
 }
 
 /** CRSF byte stream from the existing USB read callback; no changes to RC output. */
-class CrsfBatteryTelemetry {
+class CrsfBatteryTelemetry(private val onFrame: ((ByteArray) -> Unit)? = null) {
     companion object {
         const val TIMEOUT_MS = 5_000L
         private const val MAX_FRAME_SIZE = 64
@@ -52,6 +52,7 @@ class CrsfBatteryTelemetry {
                 // Optional sensor ID: show the primary battery rather than alternate sensors.
                 if (length == 10 || unsigned(11) == 0) decodeBattery(nowMs)
             }
+            onFrame?.invoke(buffer.copyOf(frameSize))
             discard(frameSize)
         }
     }

@@ -114,6 +114,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var serialDriver: CH34xUARTDriver
     private var serialOpened = false
     private var batteryTelemetry: CrsfBatteryTelemetry? = null
+    private var elrsPacketRateClient: ElrsPacketRateClient? = null
     private val batteryHandler = Handler(Looper.getMainLooper())
     private val batteryDisplayUpdater = object : Runnable {
         override fun run() {
@@ -532,6 +533,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     override fun onDestroy() {
+        closeElrsPacketRateClient()
         serialDriver.setReadListener(null)
         serialDriver.setCloseListener(null)
         batteryTelemetry = null
@@ -953,7 +955,16 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun prepareBatteryTelemetry() {
-        val telemetry = CrsfBatteryTelemetry()
+        closeElrsPacketRateClient()
+        val client = ElrsPacketRateClient(
+            send = { packet -> uartWrite(packet, packet.size) },
+            allowChange = { serialOpened && !armSwitch.isChecked })
+        elrsPacketRateClient = client
+        val telemetry = CrsfBatteryTelemetry { frame ->
+            if (frame[2].toInt() and 0xFF == 0x2B) batteryHandler.post {
+                if (elrsPacketRateClient === client) client.receive(frame, SystemClock.elapsedRealtime())
+            }
+        }
         batteryTelemetry = telemetry
         serialDriver.setReadListener { data ->
             telemetry.feed(data, SystemClock.elapsedRealtime())
@@ -964,6 +975,7 @@ class MainActivity : AppCompatActivity() {
                 if (batteryTelemetry !== telemetry) return@post
                 serialOpened = false
                 batteryTelemetry = null
+                closeElrsPacketRateClient()
                 resetCustomSerialState()
                 findViewById<Button>(R.id.openSerialButton).isEnabled = true
                 updateBatteryTelemetryView()
@@ -997,6 +1009,13 @@ class MainActivity : AppCompatActivity() {
         if (view.contentDescription != description) view.contentDescription = description
     }
 
+    private fun closeElrsPacketRateClient() {
+        val client = elrsPacketRateClient ?: return
+        if (ElrsPacketRateClient.active === client) ElrsPacketRateClient.active = null
+        client.close()
+        elrsPacketRateClient = null
+    }
+
     private fun openUartDevice(): Boolean {
         resetCustomSerialState()
         prepareBatteryTelemetry()
@@ -1014,19 +1033,18 @@ class MainActivity : AppCompatActivity() {
             debugInfo(getString(R.string.msg_fail_open_uart))
             return false
         }
-        val config_ret = serialDriver.setConfig(115200, 8, 1, 0, 0)
+        // ELRS permits 500Hz at 400k baud. Retain the legacy baud if USB configuration fails.
+        val config_ret = serialDriver.setConfig(400000, 8, 1, 0, 0) ||
+            serialDriver.setConfig(115200, 8, 1, 0, 0)
         if(config_ret){
             serialOpened = true
+            ElrsPacketRateClient.active = elrsPacketRateClient
             bytes = crsfData.pack().toByteArray()
             for (i in 0..20) {
                 uartWrite(bytes, 26)
                 sleep(5)
             }
-            bytes = crsfData.packCmd(0x01u,0x00u).toByteArray()
-            for(i in 0..10){
-                uartWrite(bytes, 8)
-                sleep(5)
-            }
+            // Keep the module's saved air rate instead of forcing parameter 1 to option 0.
             debugInfo("${getString(R.string.msg_config_success)}: $config_ret")
         }
 
@@ -1044,6 +1062,7 @@ class MainActivity : AppCompatActivity() {
             debugInfo(getString(R.string.msg_uart_disconnected))
             serialOpened = false
             batteryTelemetry = null
+            closeElrsPacketRateClient()
             updateBatteryTelemetryView()
             resetCustomSerialState()
             findViewById<Button>(R.id.openSerialButton).isEnabled = true
