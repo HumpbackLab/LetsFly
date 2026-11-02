@@ -13,6 +13,8 @@ import android.os.Handler
 import android.os.Looper
 import android.os.Bundle
 import android.text.InputType
+import android.text.InputFilter
+import android.text.TextUtils
 import android.view.Gravity
 import android.view.MotionEvent
 import android.view.View
@@ -22,6 +24,7 @@ import android.widget.CheckBox
 import android.widget.EditText
 import android.widget.FrameLayout
 import android.widget.LinearLayout
+import android.widget.ListView
 import android.widget.ScrollView
 import android.widget.Spinner
 import android.widget.Switch
@@ -31,7 +34,6 @@ import android.widget.SeekBar
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.content.ContextCompat
 import androidx.core.graphics.drawable.DrawableCompat
 import kotlin.math.abs
 
@@ -43,6 +45,10 @@ class CustomLayoutEditorActivity : AppCompatActivity() {
     private lateinit var menuButton: Button
     private lateinit var fixedControls: View
     private lateinit var config: CustomControlConfig
+    private lateinit var profiles: CustomControlProfiles
+    private lateinit var profileButton: Button
+    private lateinit var savedConfig: CustomControlConfig
+    private var profileId = 1
     private val channels = (1..16).filter { it != 5 }
     private val history = mutableListOf<CustomControlConfig>()
     private var historyIndex = 0
@@ -55,7 +61,12 @@ class CustomLayoutEditorActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
         supportActionBar?.hide()
-        config = CustomControlConfig.load(getSharedPreferences(CustomControlConfig.PREF_NAME, MODE_PRIVATE))
+        profiles = CustomControlProfiles(
+            getSharedPreferences(CustomControlConfig.PREF_NAME, MODE_PRIVATE),
+            getString(R.string.custom_profile_default_name, 1))
+        profileId = profiles.activeId()
+        config = profiles.get(profileId)!!.config
+        savedConfig = config
 
         history.add(config)
         val root = FrameLayout(this).apply {
@@ -70,28 +81,39 @@ class CustomLayoutEditorActivity : AppCompatActivity() {
             fixedControls.findViewById<View>(id).visibility = View.GONE
         }
         for (id in listOf(R.id.openSerialButton, R.id.videoRotateButton,
-            R.id.videoMirrorButton, R.id.settingsButton, R.id.switchArm)) {
+            R.id.videoMirrorButton, R.id.settingsButton, R.id.switchArm,
+            R.id.batteryTelemetryView)) {
             fixedControls.findViewById<View>(id).apply {
                 setOnClickListener(null)
                 isEnabled = false
                 isClickable = false
-                // Keep disabled previews readable on the dark editing canvas.
-                if (this is TextView) setTextColor(Color.WHITE)
-                if (this is Button) backgroundTintList = ColorStateList.valueOf(
-                    ContextCompat.getColor(this@CustomLayoutEditorActivity, R.color.purple_500))
+                // Gray previews mark occupied areas without looking interactive.
+                if (this is TextView) setTextColor(Color.LTGRAY)
+                if (this is Button) backgroundTintList = ColorStateList.valueOf(Color.DKGRAY)
+                if (this is ImageView) imageTintList = ColorStateList.valueOf(Color.LTGRAY)
                 if (this is Switch) {
                     thumbDrawable = DrawableCompat.wrap(thumbDrawable).mutate().apply {
-                        DrawableCompat.setTint(this, ContextCompat.getColor(
-                            this@CustomLayoutEditorActivity, R.color.switch_thumb_off))
+                        DrawableCompat.setTint(this, Color.LTGRAY)
                     }
                     trackDrawable = DrawableCompat.wrap(trackDrawable).mutate().apply {
-                        DrawableCompat.setTint(this, ContextCompat.getColor(
-                            this@CustomLayoutEditorActivity, R.color.switch_background_off))
+                        DrawableCompat.setTint(this, Color.DKGRAY)
                     }
                 }
             }
         }
         root.addView(fixedControls, FrameLayout.LayoutParams(-1, -2, Gravity.TOP))
+        profileButton = Button(this).apply {
+            textSize = 12f
+            maxLines = 1
+            ellipsize = TextUtils.TruncateAt.END
+            minWidth = 0
+            minimumWidth = 0
+            setPadding(dp(8), 0, dp(8), 0)
+            setTextColor(Color.BLACK)
+            backgroundTintList = ColorStateList.valueOf(Color.WHITE)
+            setOnClickListener { chooseProfile() }
+        }
+        updateProfileName()
         toolbar = LinearLayout(this).apply {
             gravity = Gravity.CENTER_VERTICAL
             setBackgroundColor(Color.rgb(48, 48, 48))
@@ -104,6 +126,7 @@ class CustomLayoutEditorActivity : AppCompatActivity() {
             setPadding(dp(8), 0, dp(8), 0)
         }
         toolbar.addView(fixedHeader, LinearLayout.LayoutParams(0, -1, 1f))
+        toolbar.addView(profileButton, LinearLayout.LayoutParams(dp(104), dp(48)))
         fun action(label: Int, click: () -> Unit) {
             toolbar.addView(Button(this).apply {
                 setText(label)
@@ -228,11 +251,147 @@ class CustomLayoutEditorActivity : AppCompatActivity() {
             config = config.asFullScreen(canvas.height, fixedControls.height)
             config = config.copy(controls = config.controls.map(::fitPosition))
             history[0] = config
+            savedConfig = config
             render()
         }
     }
 
     private fun dp(value: Int) = (value * resources.displayMetrics.density).toInt()
+
+    private fun updateProfileName() {
+        val name = profiles.get(profileId)?.name ?: return
+        profileButton.text = getString(R.string.custom_profile_picker, name)
+        profileButton.contentDescription = getString(R.string.custom_profile_select, name)
+    }
+
+    private fun chooseProfile() {
+        val available = profiles.all()
+        val labels = available.map {
+            if (it.id == profileId) getString(R.string.custom_profile_current, it.name) else it.name
+        }
+        val content = LinearLayout(this).apply {
+            gravity = Gravity.TOP
+            setPadding(dp(16), 0, dp(16), dp(8))
+        }
+        val list = ListView(this).apply {
+            adapter = ArrayAdapter(this@CustomLayoutEditorActivity,
+                android.R.layout.simple_list_item_1, labels)
+        }
+        content.addView(list, LinearLayout.LayoutParams(0,
+            dp((available.size * 48).coerceIn(144, 192)), 1f))
+        content.addView(View(this).apply { setBackgroundColor(Color.LTGRAY) },
+            LinearLayout.LayoutParams(dp(1), -1).apply {
+                marginStart = dp(8)
+                marginEnd = dp(8)
+            })
+        val actions = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
+        content.addView(actions, LinearLayout.LayoutParams(dp(104), -2))
+        val dialog = AlertDialog.Builder(this).setTitle(R.string.custom_profiles)
+            .setView(content).create()
+        list.setOnItemClickListener { _, _, index, _ ->
+            dialog.dismiss()
+            val id = available[index].id
+            if (id != profileId) confirmProfileChange { loadProfile(id) }
+        }
+        fun action(label: Int, click: () -> Unit): Button {
+            val button = Button(this).apply {
+                setText(label)
+                textSize = 14f
+                minWidth = 0
+                minimumWidth = 0
+                setOnClickListener {
+                    dialog.dismiss()
+                    click()
+                }
+            }
+            actions.addView(button, LinearLayout.LayoutParams(-1, dp(48)))
+            return button
+        }
+        action(R.string.custom_profile_create) {
+            confirmProfileChange { editProfileName(true) }
+        }
+        action(R.string.custom_profile_rename) { editProfileName(false) }
+        action(R.string.custom_delete) { deleteProfile() }
+            .setTextColor(Color.rgb(210, 40, 40))
+        dialog.show()
+    }
+
+    private fun confirmProfileChange(action: () -> Unit) {
+        if (config == savedConfig) { action(); return }
+        AlertDialog.Builder(this).setTitle(R.string.custom_profile_unsaved_title)
+            .setMessage(R.string.custom_profile_unsaved_message)
+            .setPositiveButton(R.string.custom_profile_save_switch) { _, _ ->
+                if (saveCurrentProfile()) action()
+            }
+            .setNegativeButton(R.string.custom_profile_discard_switch) { _, _ ->
+                loadProfile(profileId)
+                action()
+            }
+            .setNeutralButton(R.string.custom_cancel, null).show()
+    }
+
+    private fun loadProfile(id: Int) {
+        if (!profiles.select(id)) return
+        repeatHandler.removeCallbacksAndMessages(null)
+        profileId = id
+        config = profiles.get(id)!!.config.asFullScreen(canvas.height, fixedControls.height)
+        config = config.copy(controls = config.controls.map(::fitPosition))
+        savedConfig = config
+        selectedId = null
+        history.clear()
+        history.add(config)
+        historyIndex = 0
+        updateProfileName()
+        render()
+        showTools()
+    }
+
+    private fun editProfileName(create: Boolean) {
+        val available = profiles.all()
+        val name = EditText(this).apply {
+            inputType = InputType.TYPE_CLASS_TEXT
+            isSingleLine = true
+            filters = arrayOf(InputFilter.LengthFilter(CustomControlProfiles.MAX_NAME_LENGTH))
+            setText(if (create) getString(R.string.custom_profile_default_name,
+                (available.maxOfOrNull { it.id } ?: 0) + 1) else profiles.get(profileId)!!.name)
+            selectAll()
+        }
+        val dialog = AlertDialog.Builder(this)
+            .setTitle(if (create) R.string.custom_profile_new else R.string.custom_profile_rename)
+            .setView(name).setPositiveButton(R.string.custom_confirm, null)
+            .setNegativeButton(R.string.custom_cancel, null).create()
+        dialog.setOnShowListener {
+            dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
+                val value = name.text.toString().trim()
+                if (!profiles.nameAvailable(value, if (create) null else profileId)) {
+                    name.error = getString(R.string.custom_profile_invalid_name)
+                    return@setOnClickListener
+                }
+                if (create) {
+                    if (!validateLayout()) return@setOnClickListener
+                    val id = profiles.create(value, config) ?: return@setOnClickListener
+                    loadProfile(id)
+                } else {
+                    profiles.rename(profileId, value)
+                    updateProfileName()
+                }
+                dialog.dismiss()
+            }
+        }
+        dialog.show()
+    }
+
+    private fun deleteProfile() {
+        if (profiles.all().size <= 1) {
+            Toast.makeText(this, R.string.custom_profile_keep_one, Toast.LENGTH_SHORT).show()
+            return
+        }
+        AlertDialog.Builder(this).setTitle(R.string.custom_profile_delete)
+            .setMessage(getString(R.string.custom_profile_delete_message, profiles.get(profileId)!!.name))
+            .setPositiveButton(R.string.custom_delete) { _, _ ->
+                if (profiles.delete(profileId)) loadProfile(profiles.activeId())
+            }.setNegativeButton(R.string.custom_cancel, null).show()
+    }
 
     override fun onPause() {
         repeatHandler.removeCallbacksAndMessages(null)
@@ -805,21 +964,29 @@ class CustomLayoutEditorActivity : AppCompatActivity() {
         dialog.show()
     }
 
-    private fun save() {
+    private fun validateLayout(): Boolean {
         val error = config.error()
         if (error != null) {
             showConfigError(error)
-            return
+            return false
         }
-        if (canvas.width <= 0 || canvas.height <= 0) return
+        if (canvas.width <= 0 || canvas.height <= 0) return false
         updateWarnings()
         if (layoutIssues.isNotEmpty()) {
             Toast.makeText(this, status.text, Toast.LENGTH_LONG).show()
-            return
+            return false
         }
-        getSharedPreferences(CustomControlConfig.PREF_NAME, MODE_PRIVATE).edit()
-            .putString(CustomControlConfig.PREF_KEY, config.encode()).apply()
+        return true
+    }
+
+    private fun saveCurrentProfile(): Boolean {
+        if (!validateLayout() || !profiles.save(profileId, config)) return false
+        savedConfig = config
         Toast.makeText(this, R.string.custom_saved, Toast.LENGTH_SHORT).show()
-        finish()
+        return true
+    }
+
+    private fun save() {
+        if (saveCurrentProfile()) finish()
     }
 }

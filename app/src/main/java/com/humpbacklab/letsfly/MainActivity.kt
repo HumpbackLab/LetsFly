@@ -130,6 +130,7 @@ class MainActivity : AppCompatActivity() {
 
     private lateinit var sharedPreferences: android.content.SharedPreferences
     private lateinit var customConfig: CustomControlConfig
+    private var customProfileId = 1
     private lateinit var customState: CustomControlState
     private var customCanvas: FrameLayout? = null
     private var customSafetyHold = false
@@ -295,6 +296,8 @@ class MainActivity : AppCompatActivity() {
         // Initialize shared preferences
         sharedPreferences = getSharedPreferences("rc_controller_prefs", Context.MODE_PRIVATE)
         sharedPreferences.registerOnSharedPreferenceChangeListener(customPreferenceListener)
+        customProfileId = CustomControlProfiles(sharedPreferences,
+            getString(R.string.custom_profile_default_name, 1)).activeId()
         customConfig = CustomControlConfig.load(sharedPreferences)
         customState = CustomControlState(customConfig)
         customCanvas = findViewById(R.id.customControlCanvas)
@@ -478,8 +481,11 @@ class MainActivity : AppCompatActivity() {
         super.onResume()
         customSafetyHold = false
         if (isCustomMode()) {
+            val savedProfileId = CustomControlProfiles(sharedPreferences,
+                getString(R.string.custom_profile_default_name, 1)).activeId()
             val savedConfig = CustomControlConfig.load(sharedPreferences)
-            if (savedConfig != customConfig) {
+            if (savedProfileId != customProfileId || savedConfig != customConfig) {
+                customProfileId = savedProfileId
                 customConfig = savedConfig
                 customState = CustomControlState(customConfig)
             }
